@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Karaoke System</title>
+
+    <!-- A musical note, embedded directly rather than kept as a file. This
+         costs no extra request and stops the browser asking for
+         /favicon.ico, which would otherwise log a 404 on every page load. -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127908;</text></svg>">
+
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/theme-retro.css">
+    <link rel="stylesheet" href="/css/components.css">
+    <!-- The videoke screen's own layout. Only this page loads it, so the
+         sync editor and phone page keep their layouts untouched. -->
+    <link rel="stylesheet" href="/css/videoke.css">
+</head>
+<body class="videoke">
+
+<!-- ================= BACKGROUND =================
+     The looping mood video, at the very back. Its source is set by
+     js/videoke/background.js from the URL in js/videoke/assets.js - change
+     it there. The scrim is a still dark gradient between the video and the
+     text, so lyrics stay readable whatever the video shows. -->
+<div class="bg-stage" aria-hidden="true">
+    <video id="bg-video" class="bg-stage__video" muted loop playsinline preload="auto"></video>
+    <div class="bg-stage__scrim"></div>
+</div>
+
+<!-- Decorative CRT scanlines. aria-hidden: it carries no meaning. -->
+<div class="crt-overlay" aria-hidden="true"></div>
+
+<!-- The page is a four-row grid - strip, up next, overlay area, lyrics band. That
+     grid is what keeps every popup off the lyrics: see
+     js/videoke/performanceZone.js for the full explanation. -->
+<div class="screen">
+
+    <!-- ================= ROW 1: THE SLIM TOP STRIP ================= -->
+    <header class="strip">
+        <div class="strip__brand">
+            <span class="topbar__logo strip__logo">Karaoke</span>
+        </div>
+
+        <div class="strip__now">
+            <div class="strip__song">
+                <span id="np-singer" class="strip__singer">Nobody singing</span>
+                <span id="np-song" class="strip__title">Add a song to begin</span>
+            </div>
+            <div class="transport transport--slim">
+                <span id="time-current" class="transport__time">0:00</span>
+                <div id="scrub" class="transport__scrub"
+                     role="slider" aria-label="Seek" tabindex="0">
+                    <div id="scrub-fill" class="transport__fill"></div>
+                </div>
+                <span id="time-duration" class="transport__time">0:00</span>
+            </div>
+            <div id="lyrics-notice" class="strip__notice" hidden></div>
+        </div>
+
+        <span id="connection-status" class="status-dot">Connecting</span>
+    </header>
+
+    <!-- ================= ROW 2: UP NEXT =================
+         The waiting queue at a glance - each song's code and who is singing
+         it, in order. Filled by js/videoke/upNext.js. -->
+    <section class="upnext" aria-label="Up next">
+        <span class="upnext__label">Up next</span>
+        <ol id="upnext-list" class="upnext__list"></ol>
+    </section>
+
+    <!-- ================= ROW 3: THE OVERLAY AREA =================
+         The countdown sits here, in the middle, and every popup lives in
+         #overlay-layer on top of it. Anything marked data-overlay is checked
+         against the countdown while it shows. -->
+    <main class="middle">
+
+        <!-- The 3-2-1 before the first line. Always laid out (just invisible
+             when idle), so its box can be measured at any moment. -->
+        <div id="countdown" class="countdown" aria-hidden="true"></div>
+
+        <div id="overlay-layer" class="overlay-layer">
+
+            <!-- Join by Phone: always on screen, the main way to add songs. -->
+            <button id="join-chip" class="join-chip" type="button" data-overlay
+                    aria-label="Show the QR code for adding songs from a phone">
+                <img id="join-qr" class="join-chip__qr" alt="" width="64" height="64">
+                <span class="join-chip__text">
+                    <strong>Scan to add a song</strong>
+                    <span id="join-url" class="join-chip__url">from your phone</span>
+                </span>
+            </button>
+
+            <!-- Pop-up notices: the mic prompt and the toasts, stacked. -->
+            <div class="notices" data-overlay>
+                <div id="mic-prompt" class="mic-prompt" role="dialog"
+                     aria-label="Turn on the microphone" hidden>
+                    <span class="mic-prompt__text">🎤 Turn on the mic to get a score at the end?</span>
+                    <span class="mic-prompt__actions">
+                        <button id="mic-prompt-yes" class="btn btn--gold btn--small" type="button">Turn on mic</button>
+                        <button id="mic-prompt-no" class="btn btn--ghost btn--small" type="button">Not now</button>
+                    </span>
+                </div>
+                <div id="toasts" class="toasts" aria-live="polite"></div>
+            </div>
+
+            <!-- Shown only if the browser blocked the song from starting by
+                 itself (no click on this page yet). -->
+            <button id="start-prompt" class="start-prompt" type="button" data-overlay hidden>
+                <span class="start-prompt__icon" aria-hidden="true">▶</span>
+                Tap to start the song
+            </button>
+
+            <!-- The chat-head bubble. Tap: open the drawer. Drag: move it. -->
+            <button id="bubble" class="bubble" type="button" data-overlay
+                    aria-label="Songs and queue" aria-expanded="false" aria-controls="drawer">
+                <!-- A handheld singing microphone, tilted like one in use: a
+                     round mesh head, a collar, and a tapered handle. Drawn
+                     upright, then rotated as a group. -->
+                <svg class="bubble__icon bubble__icon--mic" viewBox="0 0 24 24" aria-hidden="true">
+                    <g transform="rotate(35 12 12)">
+                        <circle cx="12" cy="6.2" r="5"/>
+                        <path class="bubble__mesh" d="M7.6 4.6h8.8M7.2 6.2h9.6M7.6 7.8h8.8M10.2 1.6v9.2M13.8 1.6v9.2"/>
+                        <rect x="8.6" y="10.6" width="6.8" height="2.2" rx="0.8"/>
+                        <path d="M9.3 13.3h5.4l-1.1 8.4a1.6 1.6 0 0 1-3.2 0z"/>
+                    </g>
+                </svg>
+                <svg class="bubble__icon bubble__icon--close" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7 4.3 4.3l6.3 6.3 6.3-6.3z"/>
+                </svg>
+                <span id="bubble-badge" class="bubble__badge" hidden>0</span>
+            </button>
+
+            <!-- ============ THE DRAWER (opened by the bubble) ============ -->
+            <aside id="drawer" class="drawer" data-overlay="slide" aria-label="Songs and queue" inert>
+                <div class="drawer__head">
+                    <button id="play-button" class="btn btn--gold btn--small" type="button" disabled>Play</button>
+                    <button id="skip-button" class="btn btn--small" type="button" disabled>Skip</button>
+                </div>
+
+                <div class="drawer__tabs" role="tablist" aria-label="Drawer sections">
+                    <button class="drawer__tab" role="tab" type="button" data-tab="songs"
+                            id="tab-songs" aria-controls="panel-songs" aria-selected="true">Songs</button>
+                    <button class="drawer__tab" role="tab" type="button" data-tab="queue"
+                            id="tab-queue" aria-controls="panel-queue" aria-selected="false" tabindex="-1">Queue</button>
+                    <button class="drawer__tab" role="tab" type="button" data-tab="scores"
+                            id="tab-scores" aria-controls="panel-scores" aria-selected="false" tabindex="-1">Scores</button>
+                    <button class="drawer__tab" role="tab" type="button" data-tab="host"
+                            id="tab-host" aria-controls="panel-host" aria-selected="false" tabindex="-1">Host</button>
+                </div>
+
+                <!-- Songs: the same keypad and search as before. -->
+                <section id="panel-songs" class="drawer__panel" role="tabpanel"
+                         data-tab="songs" aria-labelledby="tab-songs">
+
+                    <!-- Picking a song asks who is singing, right here in the
+                         drawer (this used to be a full-screen dialog). -->
+                    <div id="pending" class="pending" hidden>
+                        <div id="pending-song" class="pending__song"></div>
+                        <div class="field">
+                            <label class="field__label" for="singer-name">Who's singing?</label>
+                            <input id="singer-name" class="field__input" type="text"
+                                   maxlength="40" placeholder="Enter your name" autocomplete="off">
+                            <span id="singer-error" class="field__error"></span>
+                        </div>
+                        <div class="pending__actions">
+                            <button id="singer-cancel" class="btn btn--ghost btn--small" type="button">Cancel</button>
+                            <button id="singer-confirm" class="btn btn--gold btn--small" type="button">Add to Queue</button>
+                        </div>
+                    </div>
+
+                    <div class="led-display">
+                        <span id="code-display" class="led-display__value led-display__value--empty">----</span>
+                    </div>
+
+                    <div class="keypad" id="keypad">
+                        <button class="keypad__key" type="button" data-key="1">1</button>
+                        <button class="keypad__key" type="button" data-key="2">2</button>
+                        <button class="keypad__key" type="button" data-key="3">3</button>
+                        <button class="keypad__key" type="button" data-key="4">4</button>
+                        <button class="keypad__key" type="button" data-key="5">5</button>
+                        <button class="keypad__key" type="button" data-key="6">6</button>
+                        <button class="keypad__key" type="button" data-key="7">7</button>
+                        <button class="keypad__key" type="button" data-key="8">8</button>
+                        <button class="keypad__key" type="button" data-key="9">9</button>
+                        <button class="keypad__key keypad__key--wide" type="button" data-key="clear">CLR</button>
+                        <button class="keypad__key" type="button" data-key="0">0</button>
+                        <button class="keypad__key keypad__key--go" type="button" data-key="go">GO</button>
+                    </div>
+
+                    <label for="search-input" class="visually-hidden">Search by title or artist</label>
+                    <input id="search-input" class="search__input" type="search"
+                           placeholder="...or search by title / artist">
+
+                    <div id="search-results" class="song-list"></div>
+                </section>
+
+                <section id="panel-queue" class="drawer__panel" role="tabpanel"
+                         data-tab="queue" aria-labelledby="tab-queue" hidden>
+                    <div class="panel__title">
+                        <span>Up next</span>
+                        <button id="clear-queue" class="btn btn--ghost btn--small" type="button">Clear</button>
+                    </div>
+                    <ul id="queue-list" class="queue-list"></ul>
+                </section>
+
+                <section id="panel-scores" class="drawer__panel" role="tabpanel"
+                         data-tab="scores" aria-labelledby="tab-scores" hidden>
+                    <div class="panel__title"><span>Tonight's Leaderboard</span></div>
+                    <ul id="leaderboard" class="leaderboard"></ul>
+                </section>
+
+                <section id="panel-host" class="drawer__panel" role="tabpanel"
+                         data-tab="host" aria-labelledby="tab-host" hidden>
+                    <div class="host-tools">
+                        <button id="mic-button" class="btn" type="button">Turn on Microphone</button>
+                        <p class="host-tools__hint">
+                            The mic is scored silently while you sing - the score
+                            appears when the song ends.
+                        </p>
+                        <button id="echo-button" class="btn" type="button"
+                                aria-pressed="false">Echo cancellation: Off</button>
+                        <p class="host-tools__hint">
+                            Turn on if the speakers are near the mic and scores
+                            seem too high even when nobody sings.
+                        </p>
+                        <button id="practice-toggle" class="btn" type="button"
+                                aria-pressed="false">Practice Mode</button>
+                        <p class="host-tools__hint">Practice runs are never scored.</p>
+                        <button id="qr-button" class="btn" type="button">Show Join QR Code</button>
+                        <a href="/sync" class="btn">Open Sync Editor</a>
+                    </div>
+                </section>
+            </aside>
+
+            <!-- ============ SCORE REVEAL (end of a finished song) ============ -->
+            <div id="reveal" class="reveal" data-overlay role="dialog" aria-modal="true"
+                 aria-labelledby="reveal-label" hidden>
+                <div class="reveal__card">
+                    <div class="reveal__kicker">Your score</div>
+                    <div id="reveal-score" class="reveal__score">0</div>
+                    <div id="reveal-label" class="reveal__label">Ang galing!</div>
+                    <div id="reveal-detail" class="reveal__detail"></div>
+                    <button id="reveal-next" class="btn btn--gold" type="button">Next song</button>
+                </div>
+            </div>
+
+            <!-- ============ BIG QR CODE ============ -->
+            <!-- Side by side (code left, words right) so it fits the space
+                 above the lyrics without ever needing a scrollbar. -->
+            <div id="qr-modal" class="modal" data-overlay role="dialog" aria-modal="true"
+                 aria-labelledby="qr-modal-title" hidden>
+                <div class="modal__panel qr-panel">
+                    <img id="qr-image" class="qr-panel__code" alt="QR code linking to the phone join page">
+                    <div class="qr-panel__text">
+                        <h2 id="qr-modal-title" class="modal__title">Add songs from your phone</h2>
+                        <p class="modal__subtitle">
+                            Scan this code, or type the address below. Your phone must be on the
+                            same Wi-Fi network as this computer.
+                        </p>
+                        <div id="qr-url" class="qr-box__url qr-panel__url"></div>
+                        <div class="modal__actions">
+                            <button id="qr-close" class="btn btn--gold" type="button">Done</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ================= ROW 4: THE LYRICS BAND =================
+         Part of the performance zone: nothing may ever cover it. aria-live
+         announces lyric changes to screen readers; "polite" waits for a
+         pause rather than interrupting. -->
+    <section class="band" aria-label="Lyrics">
+        <div id="lyrics" class="lyrics" aria-live="polite"></div>
+    </section>
+</div>
+
+<!-- The song's audio. Hidden: the progress bar in the strip is the visible
+     control; this is just the engine. -->
+<audio id="audio" preload="metadata"></audio>
+
+<!-- Socket.IO client, served from this project rather than a CDN.
+     A CDN would break the live queue whenever there is no internet, and
+     school and office networks often block or proxy CDN requests (which can
+     surface as a 500 error on this script). A local copy always works.
+     If it somehow fails to load, js/lib/socket.js falls back to polling. -->
+<script src="/js/vendor/socket.io.min.js"></script>
+
+<!-- type="module" enables ES module imports and defers execution until the
+     page has parsed, so the DOM is ready when main.js runs. -->
+<script type="module" src="/js/main.js"></script>
+
+</body>
+</html>

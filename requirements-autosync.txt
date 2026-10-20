@@ -1,0 +1,19 @@
+# Automatic word sync - the heavy machine-learning libraries.
+#
+# These go into their OWN virtual environment, .venv-align, not the one the
+# karaoke app runs in. The easy way is:
+#
+#     python scripts/setup_autosync.py
+#
+# which creates .venv-align, installs all of this, and downloads the models.
+# Needs Python 3.10-3.13 (3.12 recommended) and about 5 GB of disk space.
+
+# PyTorch, CPU-only build (no graphics card needed). The setup script
+# installs it from PyTorch's own CPU package index, which is far smaller
+# than the default build with CUDA.
+torch==2.14.0
+
+demucs==4.1.0           # vocal isolation (Meta's music source separation)
+transformers==5.17.0    # loads the MMS forced-alignment model
+soundfile==0.14.0       # reads MP3/WAV/OGG/FLAC without needing ffmpeg
+openai-whisper==20240930  # transcription, only for songs with no lyrics at all

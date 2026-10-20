@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- maximum-scale=1 stops iOS zooming in when a text field is focused,
+         which otherwise leaves the page awkwardly scrolled sideways. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Join the Queue — Karaoke</title>
+
+    <!-- Inline icon; avoids a 404 for /favicon.ico on every load. -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127908;</text></svg>">
+
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/theme-retro.css">
+    <link rel="stylesheet" href="/css/components.css">
+</head>
+<body>
+
+<div class="crt-overlay" aria-hidden="true"></div>
+
+<div class="remote">
+
+    <header class="remote__header">
+        <span class="topbar__logo">Karaoke</span>
+        <div class="topbar__tag" style="margin-top: var(--space-2);">Phone Remote</div>
+        <div style="margin-top: var(--space-3);">
+            <span id="connection-status" class="status-dot">Connecting</span>
+        </div>
+    </header>
+
+    <section class="panel">
+        <div class="panel__title"><span>Your Name</span></div>
+        <label class="visually-hidden" for="remote-name">Your name</label>
+        <input id="remote-name" class="field__input" type="text"
+               maxlength="40" placeholder="Enter your name" autocomplete="name">
+        <div style="font-size: 0.78rem; color: var(--text-faint); margin-top: var(--space-2);">
+            Saved on this phone, so you only type it once.
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="panel__title"><span>Find a Song</span></div>
+
+        <div class="led-display">
+            <span id="code-display" class="led-display__value led-display__value--empty">----</span>
+        </div>
+
+        <div class="keypad" id="keypad">
+            <button class="keypad__key" data-key="1">1</button>
+            <button class="keypad__key" data-key="2">2</button>
+            <button class="keypad__key" data-key="3">3</button>
+            <button class="keypad__key" data-key="4">4</button>
+            <button class="keypad__key" data-key="5">5</button>
+            <button class="keypad__key" data-key="6">6</button>
+            <button class="keypad__key" data-key="7">7</button>
+            <button class="keypad__key" data-key="8">8</button>
+            <button class="keypad__key" data-key="9">9</button>
+            <button class="keypad__key keypad__key--wide" data-key="clear">CLR</button>
+            <button class="keypad__key" data-key="0">0</button>
+            <button class="keypad__key keypad__key--go" data-key="del">DEL</button>
+        </div>
+
+        <label for="search-input" class="visually-hidden">Search by title or artist</label>
+        <input id="search-input" class="search__input" type="search"
+               placeholder="...or search by title / artist"
+               style="margin-top: var(--space-3);">
+
+        <div id="search-results" class="song-list"></div>
+    </section>
+
+    <section class="panel">
+        <div class="panel__title"><span>Queue</span></div>
+        <ul id="queue-list" class="queue-list" style="max-height: none;"></ul>
+    </section>
+
+</div>
+
+<div id="toast" class="toast" role="status" hidden></div>
+
+<!-- Local copy, not a CDN - phones on a classroom Wi-Fi with no internet
+     access still need the live queue to work. -->
+<script src="/js/vendor/socket.io.min.js"></script>
+<script type="module" src="/js/remote.js"></script>
+
+</body>
+</html>

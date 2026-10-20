@@ -1,0 +1,1176 @@
+/* ==========================================================================
+   videoke.css - the karaoke screen, Pinoy videoke style
+
+   Loaded only by index.html (the page's <body class="videoke">). The sync
+   editor and the phone page share base.css, theme-retro.css and
+   components.css, but not this.
+
+   Sections, in order:
+     1. Screen layout - the four rows, and the performance zone
+     2. Background video and scrim
+     3. Top strip, and the up-next queue under it
+     4. The lyrics band
+     5. The 3-2-1 countdown
+     6. The overlay layer: join chip, notices, toasts, start button
+     7. The mic bubble and its drawer
+     8. The score reveal
+     9. Small screens
+
+   ANIMATION BUDGET
+   Everything that moves here animates only `transform` and `opacity`. The
+   browser can hand those to the graphics chip and animate them without
+   laying out or repainting anything - that is what keeps this smooth on a
+   modest laptop. Nothing animates width, height, top/left, colours or
+   shadows.
+   ========================================================================== */
+
+.videoke {
+    /* The lyrics band's height. The band is part of the performance zone:
+       see section 1. At least 150px (two lines on a short screen), at most
+       300px, and about a third of the screen in between. */
+    --band-h: clamp(150px, 31vh, 300px);
+    --bubble-size: 58px;
+
+    overflow: hidden;
+}
+
+/* ==========================================================================
+   1. SCREEN LAYOUT
+
+   Four rows:
+
+       .strip          song title, progress bar          (as tall as needed)
+       .upnext         the waiting queue: code + singer  (one line)
+       .middle         the countdown + #overlay-layer    (whatever is left)
+       .band           the lyrics                        (--band-h)
+
+   THE PERFORMANCE ZONE RULE: every popup - the bubble, the drawer, toasts,
+   prompts, dialogs, the score reveal - is a child of #overlay-layer, which
+   fills the middle row and CLIPS its contents (overflow: hidden). So nothing
+   in it can ever be drawn over the band: the grid decides where the band
+   is, and the layer can only fill the space above it. This holds at every
+   screen size without any size having to match another.
+
+   The countdown, which sits inside the middle row, is protected at runtime
+   instead - see js/videoke/performanceZone.js.
+   ========================================================================== */
+
+.screen {
+    position: relative;
+    z-index: 1;                 /* above the background video */
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr) var(--band-h);
+    height: 100vh;
+    height: 100dvh;             /* dvh follows mobile browser toolbars */
+}
+
+.middle {
+    position: relative;
+    min-height: 0;
+}
+
+.overlay-layer {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;           /* THE rule: nothing inside reaches the band */
+
+    /* The layer itself lets clicks through to nothing in particular; its
+       children opt back in. */
+    pointer-events: none;
+
+    /* Lets popups size themselves from the space this layer has (cqh
+       units) - the QR popup uses it to always fit without scrolling. */
+    container-type: size;
+}
+
+.overlay-layer > * {
+    pointer-events: auto;
+}
+
+/* Set by PerformanceZone.guard() on any overlay in the countdown's way. */
+.overlay--yield {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 0.15s ease !important;
+}
+
+/* ==========================================================================
+   2. BACKGROUND VIDEO AND SCRIM
+   ========================================================================== */
+
+.bg-stage {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+
+    /* The still fallback, shown when there is no video: navy with a maroon
+       and a magenta glow. Painted once - it never animates. */
+    background:
+        radial-gradient(ellipse 70% 60% at 85% 20%, rgba(255, 47, 160, 0.28), transparent 70%),
+        radial-gradient(ellipse 80% 70% at 10% 90%, rgba(120, 18, 60, 0.55), transparent 70%),
+        radial-gradient(ellipse 60% 50% at 20% 10%, rgba(255, 210, 63, 0.12), transparent 70%),
+        linear-gradient(160deg, #0b0f3a 0%, #070920 55%, #1d0616 100%);
+}
+
+.bg-stage__video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    /* Fill the screen at any shape, cropping the edges rather than showing
+       black bars. */
+    object-fit: cover;
+}
+
+/* The legibility scrim: darker at the top (behind the strip) and much
+   darker at the bottom (behind the lyrics), lighter in the middle so the
+   video still reads as a video. A still gradient - painted once. */
+.bg-stage__scrim {
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(to bottom,
+            rgba(5, 7, 26, 0.80) 0%,
+            rgba(5, 7, 26, 0.38) 16%,
+            rgba(5, 7, 26, 0.34) 48%,
+            rgba(5, 7, 26, 0.78) 68%,
+            rgba(4, 5, 20, 0.92) 100%),
+        /* A soft vignette, so the edges fall away like a TV screen. */
+        radial-gradient(ellipse 90% 80% at 50% 45%, transparent 55%, rgba(0, 0, 0, 0.45) 100%);
+}
+
+/* ==========================================================================
+   3. TOP STRIP - song, singer and progress, kept small and out of the way
+   ========================================================================== */
+
+.strip {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-2) var(--space-4);
+    background: linear-gradient(180deg, rgba(8, 10, 38, 0.88), rgba(8, 10, 38, 0.55));
+    border-bottom: 1px solid rgba(255, 210, 63, 0.18);
+}
+
+.strip__brand {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    flex-shrink: 0;
+}
+
+.strip__logo {
+    font-size: 1.05rem;
+    color: var(--neon-gold);
+    text-shadow:
+        0 0 6px rgba(255, 210, 63, 0.85),
+        0 0 20px rgba(255, 210, 63, 0.45),
+        0 0 36px rgba(255, 47, 160, 0.3);
+}
+
+.strip__now {
+    flex: 1;
+    min-width: 0;               /* lets long titles shrink with an ellipsis */
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.strip__song {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    min-width: 0;
+    white-space: nowrap;
+}
+
+.strip__singer {
+    flex-shrink: 0;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--neon-magenta);
+    text-shadow: var(--glow-magenta);
+}
+
+.strip__title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.strip__notice {
+    font-size: 0.75rem;
+    color: var(--neon-amber);
+}
+
+.strip__notice a {
+    color: var(--neon-cyan);
+}
+
+/* The progress bar, slimmed right down. */
+.transport--slim {
+    padding: 0;
+    border: 0;
+    background: none;
+    gap: var(--space-2);
+}
+
+.transport--slim .transport__time {
+    min-width: 34px;
+    font-size: 0.7rem;
+}
+
+.transport--slim .transport__scrub {
+    height: 4px;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.transport--slim .transport__fill {
+    background: linear-gradient(90deg, var(--neon-gold), var(--neon-magenta));
+    box-shadow: 0 0 8px rgba(255, 210, 63, 0.5);
+}
+
+/* --- Up next: the waiting queue, one line under the strip -------------
+   Each waiting song as a small chip: its place in line, its code, and who
+   is singing it. It never scrolls or wraps - a long queue simply fades out
+   at the right edge (the full list is in the drawer's Queue tab). */
+
+.upnext {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-width: 0;
+    padding: 6px var(--space-4);
+    background: rgba(8, 10, 38, 0.5);
+    border-bottom: 1px solid rgba(255, 210, 63, 0.12);
+}
+
+.upnext__label {
+    flex-shrink: 0;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--neon-cyan);
+    text-shadow: var(--glow-cyan);
+}
+
+.upnext__list {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    gap: var(--space-2);
+    overflow: hidden;
+    white-space: nowrap;
+    /* Chips that run past the right edge fade out instead of being cut. */
+    mask-image: linear-gradient(to right, #000 calc(100% - 48px), transparent);
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 48px), transparent);
+}
+
+.upnext__item {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 10px 2px 3px;
+    background: rgba(25, 27, 69, 0.85);
+    border: 1px solid var(--border-bright);
+    border-radius: 999px;
+    font-size: 0.8rem;
+}
+
+/* The song on deck gets the gold outline. */
+.upnext__item:first-child {
+    border-color: rgba(255, 210, 63, 0.7);
+    box-shadow: 0 0 10px rgba(255, 210, 63, 0.2);
+}
+
+.upnext__pos {
+    min-width: 20px;
+    height: 20px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: var(--text-dim);
+}
+
+.upnext__item:first-child .upnext__pos {
+    background: var(--neon-gold);
+    color: #2a1600;
+}
+
+.upnext__code {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    color: var(--neon-amber);
+}
+
+.upnext__name {
+    max-width: 14ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.upnext__empty {
+    font-size: 0.8rem;
+    color: var(--text-faint);
+}
+
+/* A newly queued song slides in. Transform + opacity only. */
+.upnext__item--new {
+    animation: upnext-in 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes upnext-in {
+    from { opacity: 0; transform: translateY(-6px) scale(0.9); }
+    to   { opacity: 1; transform: none; }
+}
+
+/* ==========================================================================
+   4. THE LYRICS BAND - classic karaoke-TV lower third
+
+   Exactly two lines on show (lyricsRenderer.js, layout 'band'):
+     lead   the current line - big, bright, wiping gold as it is sung
+     next   the line after it - smaller and dimmed, to read ahead
+
+   When a line finishes the whole strip of lines slides up: the next line
+   grows into the lead slot and the one after it fades in underneath.
+   ========================================================================== */
+
+.band {
+    position: relative;
+    min-height: 0;
+    /* Its own darker backing on top of the scrim, fading in from above so
+       there is no hard edge. Still, so painted once. */
+    background: linear-gradient(to bottom,
+        rgba(4, 5, 22, 0) 0%,
+        rgba(4, 5, 22, 0.72) 26%,
+        rgba(4, 5, 22, 0.88) 100%);
+}
+
+.band .lyrics {
+    position: absolute;
+    inset: 0;
+}
+
+/* The band shows two lines and hides the rest itself, so the scroll
+   layout's fade-out mask is not needed. */
+.lyrics--band {
+    mask-image: none;
+    -webkit-mask-image: none;
+
+    /* The wipe's colours: white until sung, then gold, with a pale gold
+       edge where the wipe is passing through. */
+    --word-dim: #ffffff;
+    --word-edge: #fff1b8;
+    --word-lit: var(--neon-gold);
+}
+
+/* No top padding: lyricsRenderer.js centres the pair of lines in the band
+   itself, from their measured sizes. */
+.lyrics--band .lyrics__track {
+    padding: 0 var(--space-5);
+    gap: clamp(4px, 1vh, 10px);
+    /* Slightly longer than the scroll layout: a whole line moves at once. */
+    transition: transform 0.55s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.lyrics--band .lyrics__line {
+    /* Scales with the screen, capped both ways. min(vh, vw) so a narrow
+       screen gets smaller text rather than a line broken into four rows. */
+    font-size: clamp(1.15rem, min(5.6vh, 4.4vw), 3.1rem);
+    font-weight: 800;
+    line-height: 1.22;
+    text-wrap: balance;         /* a wrapped line splits into even halves */
+
+    /* Everything but the two visible lines is hidden. */
+    opacity: 0;
+    transform: scale(0.74);
+    transform-origin: 50% 0;
+    transition: opacity 0.4s ease, transform 0.45s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* A dark outline around the letters, like videoke lyrics, so they read over
+   any video. drop-shadow() outlines the finished line as drawn - including
+   the one letter part-way through its gradient wipe - which a text-shadow
+   on the letters cannot do without darkening that letter. Only the two
+   visible lines carry it. */
+.lyrics--band .lyrics__line--lead,
+.lyrics--band .lyrics__line--next {
+    filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.9)) drop-shadow(0 0 6px rgba(0, 0, 0, 0.7));
+}
+
+.lyrics--band .lyrics__line--lead {
+    opacity: 1;
+    transform: none;
+}
+
+/* The line being sung gets a brief lift as it starts (--beat runs 1 -> 0
+   over the first half-second of the line). */
+.lyrics--band .lyrics__line--lead.lyrics__line--active {
+    transform: scale(calc(1 + var(--beat, 0) * 0.04));
+}
+
+.lyrics--band .lyrics__line--next {
+    opacity: 0.6;
+    transform: scale(0.74);
+}
+
+/* The glow on the word being sung, in gold and magenta. */
+.lyrics--band .lyrics__line--active .lyrics__word {
+    text-shadow:
+        0 0 calc(4px + var(--glow, 0) * 14px) rgba(255, 210, 63, calc(var(--glow, 0) * 0.9)),
+        0 0 calc(14px + var(--glow, 0) * 30px) rgba(255, 47, 160, calc(var(--glow, 0) * 0.6));
+}
+
+/* Songs with no timing: a plain sheet that scrolls inside the band. */
+.lyrics--band.lyrics--unsynced .lyrics__line {
+    font-size: clamp(1rem, 2.6vh, 1.3rem);
+    font-weight: 600;
+    opacity: 0.85;
+    transform: none;
+    filter: none;
+    color: var(--text);
+}
+
+/* Messages ("Scan the code with your phone...") in the band. */
+.band .empty-note {
+    padding-top: clamp(16px, 5vh, 48px);
+    font-size: clamp(1rem, 3vh, 1.6rem);
+    font-weight: 700;
+    color: var(--text);
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.8);
+}
+
+.is-idle .band .empty-note {
+    color: var(--neon-gold);
+}
+
+/* ==========================================================================
+   5. THE 3-2-1 COUNTDOWN
+
+   A square box in the middle of the overlay area. It is always laid out -
+   only invisible when idle - so PerformanceZone can measure it at any time.
+   Its size comes from the space available, so it always fits above the
+   band, and the digit is sized from the box (container units).
+   ========================================================================== */
+
+.countdown {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    height: min(40vh, 90%);
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    display: grid;
+    place-items: center;
+    visibility: hidden;
+    pointer-events: none;
+    container-type: size;
+}
+
+.countdown--on {
+    visibility: visible;
+}
+
+.countdown__number {
+    font-family: "Arial Black", "Segoe UI Black", Impact, var(--font-display);
+    font-size: 8rem;            /* fallback for browsers without cq units */
+    font-size: 78cqh;
+    font-weight: 900;
+    line-height: 1;
+    color: var(--neon-gold);
+    text-shadow:
+        0 4px 0 #7a1244,
+        0 0 24px rgba(255, 210, 63, 0.8),
+        0 0 60px rgba(255, 47, 160, 0.6),
+        0 0 110px rgba(34, 224, 255, 0.35);
+
+    /* One full second per number: drop in big, settle, shrink away. Only
+       transform and opacity change, so the text is drawn once per number
+       and the animation itself costs next to nothing. */
+    animation: countdown-pop 1s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+    will-change: transform, opacity;
+}
+
+.countdown--paused .countdown__number {
+    animation-play-state: paused;
+}
+
+@keyframes countdown-pop {
+    0%   { transform: scale(1.9); opacity: 0; }
+    18%  { transform: scale(1);   opacity: 1; }
+    78%  { transform: scale(0.96); opacity: 1; }
+    100% { transform: scale(0.7); opacity: 0; }
+}
+
+/* ==========================================================================
+   6. THE OVERLAY LAYER: join chip, notices, toasts, start button
+   ========================================================================== */
+
+/* --- Join by Phone: always on screen, top-left ------------------------- */
+
+.join-chip {
+    position: absolute;
+    top: var(--space-3);
+    left: var(--space-3);
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    max-width: min(320px, calc(100% - var(--bubble-size) - 48px));
+    padding: var(--space-2) var(--space-4) var(--space-2) var(--space-2);
+    background: rgba(10, 12, 42, 0.8);
+    border: 1px solid rgba(255, 210, 63, 0.55);
+    border-radius: 14px;
+    box-shadow: 0 0 18px rgba(255, 210, 63, 0.18);
+    text-align: left;
+    transition: border-color 0.15s ease;
+}
+
+.join-chip:hover {
+    border-color: var(--neon-gold);
+}
+
+.join-chip__qr {
+    width: 64px;
+    height: 64px;
+    flex-shrink: 0;
+    padding: 3px;
+    background: #ffffff;        /* QR codes need a light backing to scan */
+    border-radius: 8px;
+}
+
+.join-chip__text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.join-chip__text strong {
+    font-size: 0.9rem;
+    color: var(--neon-gold);
+}
+
+.join-chip__url {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--neon-cyan);
+}
+
+/* With nothing playing and nothing queued, the chip calls attention to
+   itself: a gold ring pulses out from it - four times, then it rests.
+   Measured, an endless pulse kept the browser redrawing every frame and
+   cost more than the whole background video; four pulses as the screen
+   goes idle get the same attention for a few seconds' work. */
+.join-chip::after {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    border: 2px solid var(--neon-gold);
+    border-radius: inherit;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.is-idle .join-chip::after {
+    animation: chip-pulse 2.2s ease-out 4;
+}
+
+@keyframes chip-pulse {
+    0%   { transform: scale(1);    opacity: 0.8; }
+    100% { transform: scale(1.12); opacity: 0; }
+}
+
+/* --- Notices: the mic prompt and toasts, stacked top-centre ------------ */
+
+.notices {
+    position: absolute;
+    top: var(--space-3);
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(440px, calc(100% - 24px));
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    pointer-events: none;
+}
+
+.notices > * {
+    pointer-events: auto;
+}
+
+.toasts {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.toasts:empty {
+    display: none;
+}
+
+.toast-item {
+    padding: var(--space-3) var(--space-4);
+    background: rgba(12, 13, 44, 0.94);
+    border: 1px solid rgba(255, 210, 63, 0.35);
+    border-left: 4px solid var(--neon-gold);
+    border-radius: 12px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+    font-size: 0.88rem;
+    color: var(--text);
+
+    /* Fades and drops in; toasts.js adds --in on the next frame. */
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.toast-item--in {
+    opacity: 1;
+    transform: none;
+}
+
+.toast-item--error {
+    border-color: rgba(255, 92, 106, 0.5);
+    border-left-color: var(--neon-red);
+}
+
+.mic-prompt {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: rgba(12, 13, 44, 0.94);
+    border: 1px solid rgba(255, 47, 160, 0.6);
+    border-radius: 12px;
+    box-shadow: 0 0 20px rgba(255, 47, 160, 0.25);
+    font-size: 0.88rem;
+    animation: notice-in 0.3s ease both;
+}
+
+.mic-prompt__actions {
+    display: flex;
+    gap: var(--space-2);
+}
+
+@keyframes notice-in {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: none; }
+}
+
+/* --- "Tap to start": only when the browser blocked playback ------------ */
+
+.start-prompt {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-6);
+    background: linear-gradient(180deg, #ffe27a 0%, #f2b714 100%);
+    border: 2px solid #fff0b0;
+    border-radius: 999px;
+    box-shadow: 0 0 40px rgba(255, 210, 63, 0.55), 0 0 90px rgba(255, 47, 160, 0.35);
+    color: #2a1600;
+    font-size: clamp(1rem, 2.6vh, 1.35rem);
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.start-prompt__icon {
+    font-size: 1.4em;
+    line-height: 1;
+}
+
+/* --- The big QR code -----------------------------------------------------
+   Code on the left, words on the right: far shorter than stacking them, so
+   it fits above the lyrics band on a laptop screen. The code's size comes
+   from the height the overlay layer actually has (cqh units), which is what
+   guarantees the popup never needs a scrollbar. */
+.qr-panel {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-5);
+    width: min(640px, 100%);
+    overflow: hidden;           /* sized to fit, so never a scrollbar */
+}
+
+.qr-panel__code {
+    /* 100cqh is the overlay layer's height; the 84px is the dialog's own
+       padding around the code (the backdrop's 16px twice, the panel's
+       24px twice, and a little air). Never bigger than 240px, never so
+       small it stops scanning. */
+    height: clamp(96px, calc(100cqh - 84px), 240px);
+    width: auto;
+    aspect-ratio: 1;
+    padding: var(--space-2);
+    background: #ffffff;        /* QR codes need a light backing to scan */
+    border-radius: var(--radius);
+}
+
+.qr-panel .modal__subtitle {
+    margin-bottom: var(--space-3);
+}
+
+.qr-panel__url {
+    text-align: left;
+}
+
+.qr-panel .modal__actions {
+    margin-top: var(--space-4);
+}
+
+/* On a narrow screen there is no room beside the code, so the words go
+   under it - the code shrinks further to leave them space. */
+@container (max-width: 520px) {
+    .qr-panel {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        text-align: center;
+        gap: var(--space-3);
+    }
+
+    .qr-panel__code {
+        height: clamp(96px, calc(100cqh - 280px), 220px);
+    }
+
+    .qr-panel__url {
+        text-align: center;
+    }
+
+    .qr-panel .modal__actions {
+        justify-content: center;
+    }
+}
+
+/* Very little height (a phone on its side leaves ~150px above the lyrics):
+   drop the explanation - the code and the address say it anyway - and
+   tighten everything, so it still fits with no scrollbar. */
+@container (max-height: 340px) {
+    .overlay-layer .modal {
+        padding: var(--space-2);
+    }
+
+    .qr-panel {
+        padding: var(--space-3) var(--space-4);
+        gap: var(--space-4);
+    }
+
+    .qr-panel__code {
+        height: clamp(80px, calc(100cqh - 44px), 240px);
+        padding: var(--space-1);
+    }
+
+    .qr-panel .modal__title {
+        margin-bottom: var(--space-1);
+        font-size: 1rem;
+    }
+
+    .qr-panel .modal__subtitle {
+        display: none;
+    }
+
+    .qr-panel .modal__actions {
+        margin-top: var(--space-2);
+    }
+}
+
+/* --- Dialogs inside the layer ------------------------------------------
+   The shared .modal is fixed to the whole window. On this screen dialogs
+   live in the overlay layer instead, so they fill only the space above the
+   lyrics band - the band stays uncovered. */
+.overlay-layer .modal {
+    position: absolute;
+}
+
+.overlay-layer .modal__panel {
+    max-height: 100%;
+}
+
+/* ==========================================================================
+   7. THE MIC BUBBLE AND ITS DRAWER
+   ========================================================================== */
+
+.bubble {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 5;                 /* above the drawer it opens */
+    width: var(--bubble-size);
+    height: var(--bubble-size);
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #ffe890 0%, var(--neon-gold) 40%, #d9468f 100%);
+    border: 2px solid rgba(255, 255, 255, 0.85);
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.5), 0 0 22px rgba(255, 210, 63, 0.45);
+
+    /* JavaScript places it with transform: translate3d(). */
+    touch-action: none;         /* a drag on a touchscreen moves the bubble,
+                                   not the page */
+    cursor: grab;
+    user-select: none;
+}
+
+/* Snapping to an edge glides; following the finger does not (it must track
+   the pointer exactly). */
+.bubble--gliding {
+    transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.bubble--dragging {
+    cursor: grabbing;
+}
+
+.bubble__icon {
+    grid-area: 1 / 1;
+    width: 30px;
+    height: 30px;
+    fill: #2a0a2e;
+    transition: opacity 0.15s ease, transform 0.2s ease;
+}
+
+/* The grille lines on the microphone's head, in the bubble's gold so they
+   read as a mesh cut into the dark head. */
+.bubble__mesh {
+    fill: none;
+    stroke: #ffd86a;
+    stroke-width: 0.7;
+    stroke-linecap: round;
+    opacity: 0.85;
+}
+
+.bubble__icon--close,
+.bubble--open .bubble__icon--mic {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.6);
+}
+
+.bubble--open .bubble__icon--close {
+    opacity: 1;
+    transform: none;
+}
+
+/* How many songs are waiting. */
+.bubble__badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    display: grid;
+    place-items: center;
+    border-radius: 11px;
+    background: var(--neon-cyan);
+    border: 2px solid #0b0d30;
+    color: #041a22;
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+/* --- The drawer ---------------------------------------------------------
+   It slides out from whichever edge the bubble is on. Closed, it is pushed
+   just past that edge of the overlay layer - which clips it, so even the
+   bottom drawer, closed, sits hidden behind the band's edge, never on it. */
+
+.drawer {
+    position: absolute;
+    z-index: 4;
+    display: flex;
+    flex-direction: column;
+    background: rgba(11, 12, 40, 0.97);
+    border: 1px solid rgba(255, 210, 63, 0.35);
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.55);
+    overflow: hidden;
+
+    visibility: hidden;         /* not drawn at all while closed */
+    transition:
+        transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
+        visibility 0s linear 0.28s;
+}
+
+.drawer--open {
+    visibility: visible;
+    transform: none;
+    transition:
+        transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
+        visibility 0s;
+}
+
+/* Side drawers: full height of the overlay area. */
+.drawer--from-left,
+.drawer--from-right {
+    top: 0;
+    bottom: 0;
+    width: min(400px, 100%);
+}
+
+.drawer--from-left  { left: 0;  border-radius: 0 16px 16px 0; }
+.drawer--from-right { right: 0; border-radius: 16px 0 0 16px; }
+.drawer--from-left:not(.drawer--open)  { transform: translateX(-105%); }
+.drawer--from-right:not(.drawer--open) { transform: translateX(105%); }
+
+/* Top and bottom drawers: a sheet, centred. The bottom one rises from the
+   top edge of the lyrics band - never over it. */
+.drawer--from-top,
+.drawer--from-bottom {
+    left: 0;
+    right: 0;
+    margin-inline: auto;
+    width: min(560px, 100%);
+    height: min(88%, 640px);
+}
+
+.drawer--from-top    { top: 0;    border-radius: 0 0 16px 16px; }
+.drawer--from-bottom { bottom: 0; border-radius: 16px 16px 0 0; }
+.drawer--from-top:not(.drawer--open)    { transform: translateY(-105%); }
+.drawer--from-bottom:not(.drawer--open) { transform: translateY(105%); }
+
+/* The header leaves room on the right for the bubble, which parks there
+   while the drawer is open and becomes its close button. */
+.drawer__head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: calc(var(--bubble-size) + 12px);
+    padding: var(--space-2) calc(var(--bubble-size) + 20px) var(--space-2) var(--space-3);
+}
+
+.drawer__tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+}
+
+.drawer__tab {
+    flex: 1;
+    padding: var(--space-2) var(--space-1);
+    border-bottom: 2px solid transparent;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+}
+
+.drawer__tab[aria-selected="true"] {
+    color: var(--neon-gold);
+    border-bottom-color: var(--neon-gold);
+}
+
+.drawer__panel {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: var(--space-3);
+}
+
+/* Inside the drawer the panel scrolls as a whole, so the lists inside it
+   no longer need their own separate scroll areas. */
+.drawer .song-list,
+.drawer .queue-list,
+.drawer .leaderboard {
+    max-height: none;
+    overflow: visible;
+}
+
+/* A compact keypad: two rows of six instead of four rows of three, so the
+   search results are still in view on a 768px-tall laptop screen. */
+.drawer .keypad {
+    grid-template-columns: repeat(6, 1fr);
+    gap: var(--space-1);
+    margin-top: var(--space-2);
+}
+
+.drawer .keypad__key {
+    padding: var(--space-2) 0;
+    font-size: 1rem;
+}
+
+.drawer .led-display {
+    padding: var(--space-1) var(--space-3);
+}
+
+.drawer .led-display__value {
+    font-size: 1.6rem;
+}
+
+.drawer .search__input {
+    margin-top: var(--space-3);
+}
+
+/* "Who's singing?" - shown at the top of the Songs tab after picking. */
+.pending {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
+    padding: var(--space-3);
+    background: rgba(255, 210, 63, 0.08);
+    border: 1px solid rgba(255, 210, 63, 0.5);
+    border-radius: var(--radius);
+}
+
+.pending__song {
+    font-weight: 700;
+    color: var(--neon-gold);
+}
+
+.pending__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-2);
+}
+
+.host-tools {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.host-tools__hint {
+    margin: 0 0 var(--space-2);
+    font-size: 0.75rem;
+    color: var(--text-faint);
+}
+
+/* ==========================================================================
+   8. THE SCORE REVEAL
+
+   Fills the overlay area (never the band) with a dimmed backdrop and pops
+   a card in. The label under the score pops a moment later, after the
+   number has had time to climb.
+   ========================================================================== */
+
+.reveal {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    display: grid;
+    place-items: center;
+    padding: var(--space-3);
+    background: rgba(4, 5, 20, 0.6);
+}
+
+.reveal__card {
+    max-height: 100%;
+    overflow-y: auto;
+    padding: var(--space-5) clamp(var(--space-5), 5vw, 56px);
+    text-align: center;
+    background:
+        radial-gradient(ellipse 90% 70% at 50% 0%, rgba(255, 47, 160, 0.35), transparent 70%),
+        linear-gradient(170deg, #2a0a38 0%, #0d1040 60%, #3a0a24 100%);
+    border: 2px solid var(--neon-gold);
+    border-radius: 24px;
+    box-shadow: 0 0 50px rgba(255, 210, 63, 0.35), 0 0 120px rgba(255, 47, 160, 0.3);
+}
+
+.reveal--in .reveal__card {
+    animation: reveal-pop 0.6s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+
+.reveal__kicker {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--neon-cyan);
+    text-shadow: var(--glow-cyan);
+}
+
+.reveal__score {
+    font-family: "Arial Black", "Segoe UI Black", Impact, var(--font-display);
+    font-size: clamp(4rem, 16vh, 8rem);
+    font-weight: 900;
+    line-height: 1.05;
+    color: var(--neon-gold);
+    /* tabular-nums keeps the digits the same width as they count up, so
+       the number does not jiggle sideways. */
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 4px 0 #7a1244, 0 0 30px rgba(255, 210, 63, 0.7), 0 0 70px rgba(255, 47, 160, 0.5);
+}
+
+.reveal__label {
+    font-size: clamp(1.5rem, 5vh, 2.4rem);
+    font-weight: 900;
+    font-style: italic;
+    color: var(--neon-magenta);
+    text-shadow: 0 2px 0 #1a0010, 0 0 22px rgba(255, 47, 160, 0.7);
+}
+
+.reveal--in .reveal__label {
+    animation: reveal-pop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1) 1.1s both;
+}
+
+.reveal__detail {
+    margin: var(--space-2) 0 var(--space-4);
+    font-size: 0.9rem;
+    color: var(--text-dim);
+}
+
+@keyframes reveal-pop {
+    0%   { transform: scale(0.55); opacity: 0; }
+    100% { transform: scale(1);    opacity: 1; }
+}
+
+/* ==========================================================================
+   9. SMALL SCREENS
+   ========================================================================== */
+
+/* Under 1000px there is no room for the notices between the chip and the
+   bubble, so they drop below the chip instead of covering it. */
+@media (max-width: 1000px) {
+    .notices {
+        top: calc(var(--space-3) + 88px);
+    }
+}
+
+@media (max-width: 640px) {
+    .videoke {
+        --bubble-size: 50px;
+    }
+
+    .strip {
+        gap: var(--space-2);
+        padding: var(--space-2) var(--space-3);
+    }
+
+    .strip .topbar__tag,
+    .strip .status-dot {
+        display: none;
+    }
+
+    .join-chip__qr {
+        width: 44px;
+        height: 44px;
+    }
+
+    .notices {
+        top: calc(var(--space-3) + 68px);
+    }
+}
+
+/* Touch screens: bigger targets in the drawer. */
+@media (pointer: coarse) {
+    .drawer__tab {
+        padding: var(--space-3) var(--space-1);
+    }
+}

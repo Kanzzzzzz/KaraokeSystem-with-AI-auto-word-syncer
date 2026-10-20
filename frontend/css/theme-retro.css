@@ -1,0 +1,248 @@
+/* ==========================================================================
+   theme-retro.css - the retro karaoke-machine look
+
+   Three ingredients give the retro feel:
+     1. a neon-sign header
+     2. faint CRT scanlines over the whole screen
+     3. a glowing LED-style display for the song code
+
+   All of it is decoration layered on top of base.css - remove this
+   stylesheet and the app still works, just plainer.
+   ========================================================================== */
+
+/* --- Neon header ------------------------------------------------------- */
+
+.topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-3) var(--space-5);
+    background: linear-gradient(180deg, #151a4d 0%, #080a24 100%);
+    border-bottom: 1px solid var(--border-bright);
+}
+
+.topbar__brand {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-3);
+}
+
+.topbar__logo {
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--neon-cyan);
+
+    /* Layered shadows imitate a neon tube: a tight bright halo plus a wider
+       soft one. A single shadow looks flat by comparison. */
+    text-shadow:
+        0 0 6px rgba(34, 224, 255, 0.9),
+        0 0 22px rgba(34, 224, 255, 0.55),
+        0 0 44px rgba(34, 224, 255, 0.25);
+
+    animation: neon-flicker 6s infinite;
+}
+
+.topbar__tag {
+    font-size: 0.7rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--neon-magenta);
+    text-shadow: var(--glow-magenta);
+}
+
+/* A real neon sign is never perfectly steady. Keeping the flicker subtle
+   and infrequent reads as "alive" rather than "broken". */
+@keyframes neon-flicker {
+    0%, 92%, 96%, 100% { opacity: 1; }
+    93%                { opacity: 0.68; }
+    95%                { opacity: 0.85; }
+}
+
+.topbar__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+/* --- CRT scanlines -----------------------------------------------------
+   A fixed overlay of 1px horizontal lines across the viewport. It sits on
+   top of everything visually but pointer-events: none lets clicks pass
+   straight through to the interface underneath. */
+
+.crt-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    background: repeating-linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0.18) 0px,
+        rgba(0, 0, 0, 0.18) 1px,
+        transparent 1px,
+        transparent 3px
+    );
+    /* Very low opacity - enough to sense, not enough to hurt readability. */
+    opacity: 0.35;
+
+    /* No mix-blend-mode here, deliberately. "multiply" looked like the right
+       tool, but a blend mode on a full-screen layer makes the browser re-blend
+       the ENTIRE screen whenever anything under it changes - every animation
+       frame, every keystroke, every scroll. And for black lines it changes
+       nothing visible: multiplying by black and laying black over the top at
+       the same opacity give the same result. */
+}
+
+/* Scanlines over text are a readability problem for some people, so the
+   same reduced-motion preference turns them off. */
+@media (prefers-reduced-motion: reduce) {
+    .crt-overlay { display: none; }
+}
+
+/* --- LED code display --------------------------------------------------
+   The seven-segment style readout showing the code being typed. */
+
+.led-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    background: #04030a;
+    border: 1px solid var(--border-bright);
+    border-radius: var(--radius);
+
+    /* inset shadow makes the panel look recessed, like a real machine. */
+    box-shadow: inset 0 2px 12px rgba(0, 0, 0, 0.8);
+}
+
+.led-display__value {
+    font-family: var(--font-mono);
+    font-size: 2.6rem;
+    font-weight: 700;
+    letter-spacing: 0.32em;
+
+    /* text-indent offsets the trailing letter-spacing so the digits look
+       optically centred rather than pushed left. */
+    text-indent: 0.32em;
+    color: var(--neon-amber);
+    text-shadow: var(--glow-amber);
+}
+
+.led-display__value--empty {
+    color: #3a3320;
+    text-shadow: none;
+}
+
+/* --- Buttons ----------------------------------------------------------- */
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    background: var(--bg-raised);
+    border: 1px solid var(--border-bright);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.08s ease;
+}
+
+.btn:hover:not(:disabled) {
+    background: var(--bg-hover);
+    border-color: var(--neon-cyan);
+}
+
+/* A tiny push-down on click makes buttons feel physical. */
+.btn:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+.btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.btn--primary {
+    background: linear-gradient(180deg, #2bd4ee 0%, #1897b5 100%);
+    border-color: #52e7ff;
+    color: #04222b;
+    font-weight: 800;
+    box-shadow: 0 0 16px rgba(34, 224, 255, 0.35);
+}
+
+.btn--primary:hover:not(:disabled) {
+    background: linear-gradient(180deg, #48e2fa 0%, #1ba6c6 100%);
+}
+
+/* The headline button colour on the videoke screen: glowing gold. */
+.btn--gold {
+    background: linear-gradient(180deg, #ffe27a 0%, #f2b714 100%);
+    border-color: #ffe9a0;
+    color: #2a1600;
+    font-weight: 800;
+    box-shadow: 0 0 16px rgba(255, 210, 63, 0.4);
+}
+
+.btn--gold:hover:not(:disabled) {
+    background: linear-gradient(180deg, #fff0a8 0%, #ffc52e 100%);
+    border-color: #fff4c4;
+}
+
+.btn--danger {
+    border-color: rgba(255, 92, 106, 0.5);
+    color: var(--neon-red);
+}
+
+.btn--danger:hover:not(:disabled) {
+    background: rgba(255, 92, 106, 0.12);
+    border-color: var(--neon-red);
+}
+
+.btn--ghost {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--text-dim);
+}
+
+.btn--small {
+    padding: var(--space-1) var(--space-2);
+    font-size: 0.75rem;
+}
+
+/* --- Connection indicator ---------------------------------------------- */
+
+.status-dot {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+}
+
+.status-dot::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-faint);
+    transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.status-dot--online::before {
+    background: var(--neon-green);
+    box-shadow: 0 0 8px var(--neon-green);
+}
+
+.status-dot--offline::before {
+    background: var(--neon-red);
+    box-shadow: 0 0 8px var(--neon-red);
+}

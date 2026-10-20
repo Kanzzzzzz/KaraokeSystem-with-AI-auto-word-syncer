@@ -1,0 +1,31 @@
+{
+  "_comment": [
+    "Copy this file to 'song_overrides.json' to correct song metadata.",
+    "",
+    "The importer guesses artist and title from the filename, assuming the",
+    "pattern 'Artist - Title.mp3'. When a file is named the other way around",
+    "('Title - Artist.mp3') there is no way to tell which half is which, so",
+    "you state it here instead.",
+    "",
+    "The key is the audio filename exactly as it appears in data/library/audio/",
+    "or data/samples/audio/. Any of 'artist', 'title' and 'language' may be set;",
+    "anything you leave out keeps the value guessed from the filename.",
+    "",
+    "These corrections are reapplied on every import, so they survive running",
+    "scripts/init_db.py --reset.",
+    "",
+    "'sync_locked': true protects a song from automatic word sync completely:",
+    "it is never queued, never re-run, gets no draft, and its lyric files are",
+    "never written by auto sync. Use it for songs you timed carefully by hand.",
+    "The manual sync editor still works on a locked song.",
+    "",
+    "Keys starting with an underscore, like this one, are ignored."
+  ],
+
+  "Some Song - Some Artist (minus).mp3": {
+    "artist": "Some Artist",
+    "title": "Some Song",
+    "language": "English",
+    "sync_locked": false
+  }
+}

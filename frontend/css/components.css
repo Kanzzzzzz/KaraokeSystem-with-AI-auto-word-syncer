@@ -1,0 +1,1512 @@
+/* ==========================================================================
+   components.css - the individual pieces of the interface
+
+   Sections, in order:
+     1. Search (keypad + results)
+     2. Queue list
+     3. Lyrics stage (including the glow-on-beat effect)
+     4. Score meter
+     5. Leaderboard
+     6. Modal dialogs
+     7. Recap screen
+     8. Sync editor
+     9. Phone remote
+   ========================================================================== */
+
+/* ==========================================================================
+   1. SEARCH
+   ========================================================================== */
+
+.search__input {
+    width: 100%;
+    padding: var(--space-3);
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+}
+
+.search__input::placeholder {
+    color: var(--text-faint);
+}
+
+.search__input:focus {
+    border-color: var(--neon-cyan);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(34, 224, 255, 0.15);
+}
+
+/* The number pad, laid out as a 3-column grid like a real remote. */
+.keypad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+}
+
+.keypad__key {
+    padding: var(--space-3);
+    background: var(--bg-raised);
+    border: 1px solid var(--border-bright);
+    border-radius: var(--radius);
+    font-family: var(--font-mono);
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text);
+    transition: background 0.12s ease, transform 0.08s ease;
+}
+
+.keypad__key:hover {
+    background: var(--bg-hover);
+    border-color: var(--neon-cyan);
+}
+
+.keypad__key:active {
+    transform: translateY(2px);
+    background: var(--neon-cyan);
+    color: #04222b;
+}
+
+.keypad__key--wide { grid-column: span 1; font-size: 0.8rem; }
+.keypad__key--go   { background: linear-gradient(180deg, #2bd4ee, #1897b5); color: #04222b; }
+
+/* --- Results list ------------------------------------------------------ */
+
+.song-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+    max-height: 340px;
+    overflow-y: auto;
+}
+
+.song-row {
+    display: grid;
+    /* Fixed code column, flexible details, fixed action - so codes line up
+       vertically no matter how long the titles are. */
+    grid-template-columns: 56px 1fr auto;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    text-align: left;
+    width: 100%;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.song-row:hover {
+    background: var(--bg-hover);
+    border-color: var(--neon-cyan);
+}
+
+.song-row__code {
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--neon-amber);
+    text-shadow: 0 0 8px rgba(255, 194, 71, 0.4);
+}
+
+.song-row__title {
+    font-weight: 600;
+    /* Long titles get an ellipsis instead of breaking the grid. */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.song-row__artist {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.song-row__meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: 0.7rem;
+    color: var(--text-faint);
+}
+
+/* A small warning badge on songs that have no timestamped lyrics yet. */
+.badge-unsynced {
+    padding: 2px 6px;
+    background: rgba(255, 194, 71, 0.15);
+    border: 1px solid rgba(255, 194, 71, 0.4);
+    border-radius: 4px;
+    font-size: 0.65rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--neon-amber);
+    white-space: nowrap;
+}
+
+.empty-note {
+    padding: var(--space-5) var(--space-3);
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--text-faint);
+}
+
+/* ==========================================================================
+   2. QUEUE
+   ========================================================================== */
+
+.queue-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.queue-item {
+    display: grid;
+    grid-template-columns: 28px 1fr auto;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    transition: border-color 0.15s ease, opacity 0.2s ease;
+}
+
+/* The song on screen right now gets the amber "now playing" treatment. */
+.queue-item--playing {
+    border-color: var(--neon-amber);
+    background: rgba(255, 194, 71, 0.08);
+    box-shadow: 0 0 20px rgba(255, 194, 71, 0.15);
+}
+
+.queue-item__position {
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-faint);
+    text-align: center;
+}
+
+.queue-item--playing .queue-item__position {
+    color: var(--neon-amber);
+}
+
+.queue-item__singer {
+    font-weight: 700;
+    color: var(--neon-cyan);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.queue-item__song {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.queue-item__controls {
+    display: flex;
+    gap: var(--space-1);
+}
+
+.icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    line-height: 1;
+    transition: all 0.15s ease;
+}
+
+.icon-btn:hover {
+    border-color: var(--neon-cyan);
+    color: var(--neon-cyan);
+}
+
+.icon-btn--danger:hover {
+    border-color: var(--neon-red);
+    color: var(--neon-red);
+}
+
+.icon-btn:disabled {
+    opacity: 0.25;
+    cursor: not-allowed;
+}
+
+/* Dragging feedback for host reordering. */
+.queue-item--dragging {
+    opacity: 0.4;
+    border-color: var(--neon-cyan);
+}
+
+.queue-item--drop-target {
+    border-top: 2px solid var(--neon-cyan);
+}
+
+.queue-item__handle {
+    cursor: grab;
+}
+
+/* ==========================================================================
+   3. LYRICS STAGE
+   ========================================================================== */
+
+.stage {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    min-height: 0;
+}
+
+/* The spectrum canvas sits behind the lyrics, filling the stage. */
+.stage__visual {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+.stage__header {
+    position: relative;   /* above the canvas */
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-5);
+    border-bottom: 1px solid var(--border);
+    background: rgba(10, 8, 20, 0.55);
+}
+
+.now-playing__singer {
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--neon-magenta);
+}
+
+.now-playing__song {
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.now-playing__song span {
+    color: var(--text-dim);
+    font-weight: 400;
+}
+
+/* --- The scrolling lyric lines ----------------------------------------- */
+
+.lyrics {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    text-align: center;
+
+    /* Fade the lines out toward the top and bottom edges so they appear to
+       emerge from and vanish into the background, rather than being
+       abruptly clipped. */
+    mask-image: linear-gradient(
+        to bottom,
+        transparent 0%, #000 16%, #000 84%, transparent 100%
+    );
+    -webkit-mask-image: linear-gradient(
+        to bottom,
+        transparent 0%, #000 16%, #000 84%, transparent 100%
+    );
+}
+
+/* The moving strip holding every lyric line.
+ *
+ * It is absolutely positioned so that JavaScript can place it with a single
+ * translateY: the active line's measured centre is subtracted from half the
+ * box height, which puts that line exactly in the middle. Animating one
+ * transform (rather than scrolling or re-laying-out) keeps the whole thing
+ * on the GPU. */
+.lyrics__track {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-4);
+    padding: 0 var(--space-5);
+
+    /* The easing matters more than the duration here: this curve starts
+       quickly and settles gently, so lines glide into place instead of
+       sliding at a constant, mechanical speed. */
+    transition: transform 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
+    will-change: transform;
+}
+
+.lyrics__line {
+    /* One size for every line. The active line is enlarged with a transform
+       instead of a larger font-size, because transforms do not affect layout
+       - so highlighting a line never nudges the others, and the measured
+       line positions stay correct. */
+    font-size: 1.55rem;
+    font-weight: 700;
+    line-height: 1.35;
+    color: var(--text-faint);
+    opacity: 0.4;
+
+    transition: opacity 0.35s ease, transform 0.35s ease;
+
+    /* No will-change on every line. will-change asks the browser to give an
+       element its own compositing layer, and a song has dozens of lines - so
+       this was dozens of layers, most of them idle. The browser promotes a
+       line by itself while it is animating; only the active line, which
+       changes every frame, keeps a permanent one (below). */
+}
+
+/* Lines already sung fade back rather than vanishing, so singers can see
+   where they have come from. */
+.lyrics__line--past {
+    opacity: 0.28;
+    transform: scale(0.94);
+}
+
+/* Lines yet to come stay readable - that is what lets a singer read ahead
+   and be ready for the next line. */
+.lyrics__line--future {
+    opacity: 0.4;
+    transform: scale(0.94);
+}
+
+/* ---- THE ACTIVE LINE ---------------------------------------------------
+   `--beat` is written by lyricsRenderer.js each frame. It runs from 1 at the
+   moment a line starts down to 0, giving each new line a brief flare as it
+   arrives. */
+.lyrics__line--active {
+    opacity: 1;
+    /* Scales between 1.16 and 1.22 - a lift you feel more than see. */
+    transform: scale(calc(1.16 + var(--beat, 0) * 0.06));
+    transition: opacity 0.25s ease, transform 0.25s ease;
+
+    /* The one line whose transform changes every frame gets its own layer,
+       so the pulse is handled by the compositor instead of repainting. */
+    will-change: transform;
+}
+
+/* ---- THE WIPE AND THE GLOW ---------------------------------------------
+   lyricsRenderer.js sets two custom properties:
+
+     --fill   0-100 on each LETTER, how much of that letter has been sung
+     --glow   0-1 on each WORD, how brightly the word is lit right now
+
+   The wipe is painted per LETTER, not per word. A gradient is painted across
+   an element's box, so one gradient on a word or line that wraps onto two
+   rows would light both rows at once. Letters filling in turn keeps the wipe
+   in reading order. The words are inline-block so a line can only wrap
+   between words, never in the middle of one. */
+.lyrics__word {
+    display: inline-block;
+
+    /* The text is transparent so only each letter's gradient shows. Letters
+       inherit these from the word. */
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+}
+
+/* The glow and the lift, on the ACTIVE line only.
+ *
+ * Only the line being sung glows, so only its words carry the shadows; every
+ * other line has nothing extra to draw. Words also used to have will-change,
+ * asking for one compositing layer PER WORD - about 400 layers for a long
+ * song, which is what made the whole page heavy. Their small lift needs no
+ * layer of its own. */
+.lyrics__line--active .lyrics__word {
+    /* text-shadow is drawn from the glyph outline, so it still renders even
+       though the text colour is transparent - which is what lets the glow sit
+       under the wipe. Both the spread and the opacity scale with --glow. */
+    text-shadow:
+        0 0 calc(6px + var(--glow, 0) * 16px) rgba(34, 224, 255, calc(var(--glow, 0) * 0.85)),
+        0 0 calc(18px + var(--glow, 0) * 34px) rgba(255, 59, 167, calc(var(--glow, 0) * 0.55));
+
+    /* A small lift on the word currently being sung. Transitioning only this
+       (not --fill, which JavaScript drives every frame) keeps the pop smooth
+       without the wipe lagging behind the music. */
+    transform: translateY(calc(var(--glow, 0) * -2px));
+    transition: transform 0.12s ease-out;
+}
+
+/* Each letter is in one of three states (set by applyFill() in
+   lyricsRenderer.js). Only the letter being sung right now needs the
+   gradient: at 0% or 100% a gradient looks exactly like a plain colour, and
+   plain colours are much cheaper to draw. */
+
+/* Not sung yet: plain dim colour. */
+.lyrics__char {
+    display: inline-block;
+    color: var(--word-dim);
+    -webkit-text-fill-color: var(--word-dim);
+}
+
+/* Sung: plain lit colour. */
+.lyrics__char--sung {
+    color: var(--word-lit);
+    -webkit-text-fill-color: var(--word-lit);
+}
+
+/* Being sung: the letter paints a gradient through its glyph
+   (background-clip: text), with the colour boundary at its --fill.
+
+   The boundary is a soft band (dim -> bright edge -> lit), 20% of the letter
+   wide on each side, so the wipe glides rather than moving as a hard line.
+   A letter is narrow, so the band would normally spill over its left edge
+   and tint it before it is sung. To stop that, --fill is scaled by 1.4 and
+   shifted so that:
+
+     --fill 0    -> the whole band sits off the LEFT edge  (letter fully dim)
+     --fill 100  -> the whole band sits off the RIGHT edge (letter fully lit)
+
+   1.4 = 1 + 2 x 20%: the extra travel the band needs to clear both edges.
+   Those two end points are exactly the plain colours of the other two states,
+   so a letter switching state never visibly jumps. */
+.lyrics__char--filling {
+    background-image: linear-gradient(
+        90deg,
+        var(--word-lit) calc(var(--fill, 0) * 1.4% - 40%),
+        var(--word-edge) calc(var(--fill, 0) * 1.4% - 20%),
+        var(--word-dim) calc(var(--fill, 0) * 1.4%)
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+}
+
+/* The colours the wipe moves between. Declared on the lyrics box so the whole
+   scheme can be changed in one place. */
+.lyrics {
+    --word-lit: #ffffff;
+    --word-edge: #9beeff;
+    --word-dim: rgba(164, 159, 196, 0.55);
+}
+
+/* Songs with no timing data get a plain, scrollable sheet instead: no
+   centring transform, no per-word animation. */
+.lyrics--unsynced {
+    overflow-y: auto;
+}
+
+.lyrics--unsynced .lyrics__track {
+    position: static;
+    padding: var(--space-5);
+    transition: none;
+    transform: none;
+}
+
+.lyrics--unsynced .lyrics__line {
+    font-size: 1.1rem;
+    font-weight: 600;
+    opacity: 0.72;
+    transform: none;
+    color: var(--text);
+}
+
+.lyrics__notice {
+    position: relative;
+    z-index: 2;
+    margin: 0 var(--space-5) var(--space-4);
+    padding: var(--space-3);
+    background: rgba(255, 194, 71, 0.1);
+    border: 1px solid rgba(255, 194, 71, 0.35);
+    border-radius: var(--radius);
+    font-size: 0.85rem;
+    color: var(--neon-amber);
+    text-align: center;
+}
+
+.lyrics__notice a {
+    color: var(--neon-cyan);
+}
+
+/* --- Transport bar ------------------------------------------------------ */
+
+.transport {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-5);
+    border-top: 1px solid var(--border);
+    background: rgba(10, 8, 20, 0.55);
+}
+
+.transport__time {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    min-width: 42px;   /* stops the layout shifting as digits change width */
+}
+
+.transport__scrub {
+    flex: 1;
+    height: 6px;
+    background: var(--bg-raised);
+    border-radius: 3px;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.transport__fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--neon-cyan), var(--neon-magenta));
+    box-shadow: var(--glow-cyan);
+    /* No transition: this is updated every frame and any easing would make
+       the bar lag behind the audio. */
+}
+
+/* ==========================================================================
+   4. SCORE METER
+   ========================================================================== */
+
+.score-meter {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.score-meter__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+}
+
+.score-meter__value {
+    font-family: var(--font-mono);
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--neon-green);
+    text-shadow: 0 0 14px rgba(78, 240, 138, 0.5);
+}
+
+.score-meter__label {
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+}
+
+.score-meter__bar {
+    height: 14px;
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    overflow: hidden;
+}
+
+.score-meter__fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--neon-cyan), var(--neon-green));
+    /* A short transition smooths the jitter of frame-by-frame updates
+       without making the meter feel disconnected from the singing. */
+    transition: width 0.18s ease-out;
+}
+
+/* The live input-level bar, showing the mic is actually hearing something. */
+.mic-level {
+    height: 6px;
+    background: var(--bg-raised);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.mic-level__fill {
+    height: 100%;
+    width: 0%;
+    background: var(--neon-magenta);
+    /* Deliberately no transition - this should react instantly, since its
+       whole job is to prove the microphone is live. */
+}
+
+.score-hint {
+    font-size: 0.75rem;
+    color: var(--text-faint);
+    text-align: center;
+}
+
+/* ==========================================================================
+   5. LEADERBOARD
+   ========================================================================== */
+
+.leaderboard {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.leader-row {
+    display: grid;
+    grid-template-columns: 28px 1fr auto;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.leader-row__rank {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    color: var(--text-faint);
+    text-align: center;
+}
+
+/* Top three get medal colouring. */
+.leader-row--1 { border-color: rgba(255, 194, 71, 0.55); background: rgba(255, 194, 71, 0.07); }
+.leader-row--1 .leader-row__rank { color: var(--neon-amber); }
+.leader-row--2 { border-color: rgba(200, 200, 220, 0.4); }
+.leader-row--2 .leader-row__rank { color: #c8c8dc; }
+.leader-row--3 { border-color: rgba(205, 127, 50, 0.4); }
+.leader-row--3 .leader-row__rank { color: #cd7f32; }
+
+.leader-row__name {
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.leader-row__song {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.leader-row__score {
+    font-family: var(--font-mono);
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--neon-green);
+}
+
+/* ==========================================================================
+   6. MODAL
+   ========================================================================== */
+
+.modal {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-4);
+    /* A darker backdrop does the job a blur used to do: separating the dialog
+       from the busy screen behind it. backdrop-filter: blur() has to be
+       recomputed whenever the page behind it changes, and behind this dialog
+       the lyrics and spectrum animate - so the blur was a standing cost on
+       every frame while you typed. */
+    background: rgba(4, 3, 10, 0.9);
+}
+
+/* [hidden] needs help here because the display above would otherwise win. */
+.modal[hidden] {
+    display: none;
+}
+
+.modal__panel {
+    width: min(460px, 100%);
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: var(--space-5);
+    background: var(--bg-panel);
+    border: 1px solid var(--border-bright);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
+}
+
+.modal__title {
+    margin-bottom: var(--space-2);
+    font-size: 1.15rem;
+}
+
+.modal__subtitle {
+    margin-bottom: var(--space-4);
+    font-size: 0.85rem;
+    color: var(--text-dim);
+}
+
+.modal__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-2);
+    margin-top: var(--space-5);
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.field__label {
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+}
+
+.field__input {
+    width: 100%;
+    padding: var(--space-3);
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+}
+
+.field__input:focus {
+    border-color: var(--neon-cyan);
+    outline: none;
+}
+
+.field__error {
+    font-size: 0.78rem;
+    color: var(--neon-red);
+}
+
+/* The QR code needs a white backing - dark pixels on a dark panel will not
+   scan. */
+.qr-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.qr-box img {
+    width: 220px;
+    height: 220px;
+    padding: var(--space-3);
+    background: #ffffff;
+    border-radius: var(--radius);
+}
+
+.qr-box__url {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--neon-cyan);
+    word-break: break-all;
+    text-align: center;
+}
+
+/* ==========================================================================
+   7. RECAP SCREEN
+   ========================================================================== */
+
+.recap__score {
+    text-align: center;
+    margin-bottom: var(--space-4);
+}
+
+.recap__value {
+    font-family: var(--font-mono);
+    font-size: 4.5rem;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--neon-green);
+    text-shadow: 0 0 30px rgba(78, 240, 138, 0.45);
+}
+
+.recap__grade {
+    font-size: 1.1rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--neon-amber);
+    text-shadow: var(--glow-amber);
+}
+
+.recap__breakdown {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+}
+
+.recap__stat {
+    padding: var(--space-3);
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    text-align: center;
+}
+
+.recap__stat-value {
+    font-family: var(--font-mono);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--neon-cyan);
+}
+
+.recap__stat-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+}
+
+.recap__graph {
+    width: 100%;
+    height: 120px;
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.recap__graph-label {
+    margin-top: var(--space-2);
+    font-size: 0.72rem;
+    color: var(--text-faint);
+    text-align: center;
+}
+
+/* ==========================================================================
+   8. SYNC EDITOR
+   ========================================================================== */
+
+.sync {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    height: 100vh;
+    height: 100dvh;
+}
+
+.sync__body {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: var(--space-4);
+    padding: var(--space-4);
+    min-height: 0;
+}
+
+.sync__lines {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding: var(--space-4);
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow-y: auto;
+}
+
+.sync-line {
+    display: grid;
+    grid-template-columns: 86px 1fr;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+/* The line waiting to be stamped - the one SPACE will apply to. */
+.sync-line--current {
+    background: rgba(34, 224, 255, 0.12);
+    border-color: var(--neon-cyan);
+    box-shadow: var(--glow-cyan);
+}
+
+.sync-line--stamped .sync-line__time {
+    color: var(--neon-green);
+}
+
+.sync-line--section {
+    opacity: 0.55;
+    font-style: italic;
+}
+
+.sync-line__time {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--text-faint);
+}
+
+.sync-line__text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sync__help {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    font-size: 0.8rem;
+    color: var(--text-dim);
+}
+
+.sync__help kbd {
+    display: inline-block;
+    min-width: 22px;
+    padding: 2px 6px;
+    background: var(--bg-raised);
+    border: 1px solid var(--border-bright);
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    text-align: center;
+    color: var(--neon-cyan);
+}
+
+.sync__footer {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-5);
+    border-top: 1px solid var(--border);
+    background: var(--bg-panel);
+}
+
+/* The left column: the live preview on top, the list to edit below. */
+.sync__main {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    min-height: 0;
+}
+
+.sync__main .sync__lines {
+    flex: 1;
+    min-height: 0;
+
+    /* Its own compositing layer. The list holds a chip for every word of the
+       song - ~400 for a long one - and without a layer of its own, every
+       small change in it (the playing-word highlight moving, a tap) made the
+       browser repaint the whole page underneath. Measured during playback:
+       the page's painting dropped from ~190 to ~80 ms per second. */
+    will-change: transform;
+}
+
+/* Rows scrolled out of view are skipped entirely - not styled, laid out or
+   painted - until they scroll back in. contain-intrinsic-size gives them a
+   stand-in height meanwhile ("auto" remembers the real height once a row has
+   been shown), so the scrollbar stays steady. Browsers without support just
+   render every row as before. */
+.sync__lines .sync-line {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 44px;
+}
+
+/* A short strip - enough for the active line and its neighbours. The stage
+   normally grows to fill the karaoke screen; here it must not. */
+.sync__preview {
+    flex: 0 0 170px;
+}
+
+.sync__preview .lyrics__line {
+    font-size: 1.15rem;
+}
+
+/* While you are tapping, the preview would be animating timing that is
+   already out of date - so it stops, dims, and says so. It catches up the
+   moment playback pauses. */
+.sync__preview--stale .lyrics {
+    opacity: 0.35;
+}
+
+.sync__preview--stale::after {
+    content: "Preview catches up when you pause";
+    position: absolute;
+    top: var(--space-2);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+}
+
+/* The per-mode help blocks, set apart from the shared keys above them. */
+.sync__help--mode {
+    margin-top: var(--space-3);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--border);
+}
+
+/* The Lines / Words switch. */
+.mode-toggle {
+    display: flex;
+    gap: var(--space-1);
+    margin-top: var(--space-3);
+}
+
+.mode-toggle .btn {
+    flex: 1;
+}
+
+.mode-toggle .btn[aria-pressed="true"] {
+    background: var(--neon-cyan);
+    border-color: var(--neon-cyan);
+    color: #04222b;
+}
+
+/* ---- Words mode: one chip per word -------------------------------------
+   Each chip shows the word with its time underneath. The states:
+     timed     green time        - this word has been stamped
+     cursor    cyan outline      - J stamps this word next
+     selected  amber fill        - the arrow keys nudge this word
+     playing   bright            - the word being sung right now          */
+.word-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+}
+
+.word-chip {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2px var(--space-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-raised);
+    color: var(--text-dim);
+    line-height: 1.25;
+    transition: background 0.1s ease, border-color 0.1s ease;
+}
+
+.word-chip:hover {
+    border-color: var(--border-bright);
+}
+
+.word-chip__time {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--text-faint);
+}
+
+.word-chip--timed {
+    color: var(--text);
+}
+
+.word-chip--timed .word-chip__time {
+    color: var(--neon-green);
+}
+
+.word-chip--cursor {
+    border-color: var(--neon-cyan);
+    box-shadow: var(--glow-cyan);
+}
+
+.word-chip--selected {
+    border-color: var(--neon-amber);
+    background: rgba(255, 194, 71, 0.14);
+}
+
+.word-chip--playing {
+    background: rgba(34, 224, 255, 0.25);
+    color: #ffffff;
+}
+
+/* Where the singing of a line stops (the K key), shown after its last word. */
+.word-chip-end {
+    align-self: center;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--neon-magenta);
+}
+
+/* In Lines mode, a small tag on lines that also carry word timings - a
+   reminder that re-timing the line will move its words with it. */
+.sync-line__tag {
+    margin-left: var(--space-2);
+    padding: 0 5px;
+    border: 1px solid rgba(78, 240, 138, 0.45);
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-style: normal;
+    color: var(--neon-green);
+}
+
+/* The paste-your-own-lyrics view, for songs LRCLIB does not have. */
+.paste {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    min-height: 0;
+}
+
+.paste__hint {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+}
+
+.paste__text {
+    flex: 1;
+    min-height: 240px;
+    resize: vertical;
+    font-family: inherit;
+    line-height: 1.6;
+}
+
+.paste__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-2);
+}
+
+.toast {
+    position: fixed;
+    bottom: var(--space-5);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 200;
+    padding: var(--space-3) var(--space-5);
+    background: var(--bg-raised);
+    border: 1px solid var(--neon-cyan);
+    border-radius: var(--radius);
+    box-shadow: var(--glow-cyan);
+    font-size: 0.85rem;
+}
+
+.toast[hidden] { display: none; }
+
+.toast--error {
+    border-color: var(--neon-red);
+    box-shadow: 0 0 12px rgba(255, 92, 106, 0.5);
+}
+
+/* ---- Auto sync ----------------------------------------------------------
+   Words auto sync was unsure of get a dashed amber outline and a small dot,
+   so they stand out among the chips without hiding the other states.     */
+.word-chip--review {
+    border-style: dashed;
+    border-color: var(--neon-amber);
+    position: relative;
+}
+
+.word-chip--review::after {
+    content: "";
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--neon-amber);
+    box-shadow: var(--glow-amber);
+}
+
+/* The selected / cursor states keep their own colour on a flagged word. */
+.word-chip--review.word-chip--cursor { border-color: var(--neon-cyan); }
+.word-chip--review.word-chip--selected { border-color: var(--neon-amber); border-style: solid; }
+
+/* Lines mode: lines holding words to check. */
+.sync-line__tag--review {
+    border-color: rgba(255, 194, 71, 0.55);
+    color: var(--neon-amber);
+}
+
+.autosync__status {
+    font-weight: 700;
+    margin-bottom: var(--space-2);
+}
+
+.autosync__status--done         { color: var(--neon-green); }
+.autosync__status--needs_review { color: var(--neon-amber); }
+.autosync__status--failed       { color: var(--neon-red); }
+.autosync__status--processing,
+.autosync__status--queued       { color: var(--neon-cyan); }
+.autosync__status--locked       { color: var(--text-faint); }
+
+.autosync__message:empty { display: none; }
+
+#autosync-controls,
+#autosync-draft,
+#autosync-next {
+    margin-top: var(--space-3);
+}
+
+#autosync-controls {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+/* A thin progress bar, for uploads, imports and auto sync. */
+.progress {
+    height: 6px;
+    margin-top: var(--space-3);
+    background: var(--bg-raised);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress[hidden] { display: none; }
+
+.progress__bar {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, var(--neon-cyan), var(--neon-magenta));
+    transition: width 0.4s ease;
+}
+
+/* Auto-sync state in the song list, next to the synced badge. */
+.badge-auto {
+    padding: 2px 6px;
+    border: 1px solid var(--border-bright);
+    border-radius: 4px;
+    font-size: 0.65rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: var(--text-dim);
+}
+
+.badge-auto--done         { color: var(--neon-green); border-color: rgba(78, 240, 138, 0.45); }
+.badge-auto--needs_review { color: var(--neon-amber); border-color: rgba(255, 194, 71, 0.45); }
+.badge-auto--failed       { color: var(--neon-red); border-color: rgba(255, 92, 106, 0.45); }
+.badge-auto--processing,
+.badge-auto--queued       { color: var(--neon-cyan); border-color: rgba(34, 224, 255, 0.45); }
+.badge-auto--locked       { color: var(--text-faint); }
+
+/* ---- Add a song ------------------------------------------------------- */
+
+/* The picker page holds two panels now, so it scrolls as a whole. */
+#sync-picker-panel {
+    overflow-y: auto;
+    align-content: start;
+}
+
+.add-song__summary {
+    cursor: pointer;
+    list-style: none;
+    margin-bottom: 0;
+}
+
+.add-song__summary::-webkit-details-marker { display: none; }
+
+.add-song[open] .add-song__summary { margin-bottom: var(--space-3); }
+
+.add-song__form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.add-song__hint {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+}
+
+.add-song__row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 180px;
+    gap: var(--space-3);
+}
+
+@media (max-width: 700px) {
+    .add-song__row { grid-template-columns: 1fr; }
+}
+
+.add-song__more {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+}
+
+.add-song__more > summary {
+    cursor: pointer;
+}
+
+.add-song__more[open] > summary {
+    margin-bottom: var(--space-3);
+}
+
+.add-song__more .field + .field,
+.add-song__more .field + .add-song__check {
+    margin-top: var(--space-3);
+}
+
+.add-song__lyrics {
+    min-height: 120px;
+    resize: vertical;
+    font-family: inherit;
+}
+
+.add-song__check {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: 0.85rem;
+    color: var(--text-dim);
+}
+
+.add-song__actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+
+.add-song__status {
+    font-size: 0.85rem;
+    color: var(--neon-cyan);
+}
+
+.add-song__status--error { color: var(--neon-red); }
+
+/* ---- Preview: the karaoke band, full screen ------------------------------ */
+.preview {
+    position: fixed;
+    inset: 0;
+    z-index: 150;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    background:
+        radial-gradient(ellipse at 30% 20%, rgba(255, 47, 160, 0.18), transparent 60%),
+        radial-gradient(ellipse at 70% 80%, rgba(34, 224, 255, 0.14), transparent 60%),
+        linear-gradient(160deg, var(--bg-deep), var(--maroon));
+}
+
+.preview[hidden] { display: none; }
+
+.preview__head,
+.preview__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-5);
+}
+
+.preview__foot {
+    font-size: 0.8rem;
+    color: var(--text-faint);
+}
+
+.preview__kicker {
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--neon-magenta);
+}
+
+.preview__title {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.preview__actions {
+    display: flex;
+    gap: var(--space-2);
+}
+
+/* The band sits in the lower part of the screen, as on the karaoke screen. */
+.preview__band {
+    align-self: end;
+    height: min(34vh, 300px);
+}
+
+/* ==========================================================================
+   9. PHONE REMOTE
+   ========================================================================== */
+
+.remote {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: var(--space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.remote__header {
+    text-align: center;
+    padding: var(--space-4) 0 0;
+}
+
+/* Touch targets need to be bigger than mouse targets. 44px is the usual
+   minimum recommendation for a comfortable tap. */
+@media (pointer: coarse) {
+    .keypad__key { padding: var(--space-4); font-size: 1.3rem; }
+    .song-row    { padding: var(--space-3); min-height: 56px; }
+    .btn         { padding: var(--space-3) var(--space-4); min-height: 44px; }
+    .icon-btn    { width: 38px; height: 38px; }
+}
+
+/* "Still working" badge for background jobs (js/lib/activityBadge.js) */
+.activity-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    max-width: 22rem;
+    padding: 2px var(--space-3);
+    border: 1px solid var(--neon-amber);
+    border-radius: 999px;
+    color: var(--neon-amber);
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+.activity-badge[hidden] { display: none; }
+.activity-badge__text { overflow: hidden; text-overflow: ellipsis; }
+.activity-badge__dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: activity-pulse 1.2s ease-in-out infinite;
+}
+@keyframes activity-pulse { 50% { opacity: 0.25; } }
+@media (prefers-reduced-motion: reduce) { .activity-badge__dot { animation: none; } }
+
+/* Edit / Delete links inside a song row, and the edit dialog (sync editor) */
+.song-row__action {
+    margin-left: var(--space-2);
+    color: var(--neon-cyan);
+    font-size: 0.8rem;
+    text-decoration: underline;
+    cursor: pointer;
+}
+.song-row__action:last-child { color: var(--neon-red); }
+.edit-song {
+    min-width: min(24rem, 92vw);
+    padding: var(--space-4);
+    color: inherit;
+    background: var(--bg-panel, #14102b);
+    border: 2px solid var(--neon-gold);
+    border-radius: 8px;
+}
+.edit-song::backdrop { background: rgba(0, 0, 0, 0.6); }
+.edit-song .field { display: block; margin-bottom: var(--space-3); }
+.edit-song .field input,
+.edit-song .field select { display: block; width: 100%; margin-top: 2px; }

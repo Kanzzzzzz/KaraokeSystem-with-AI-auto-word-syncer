@@ -1,0 +1,8 @@
+# Web-Based Karaoke System - Python dependencies
+# Install with:  pip install -r requirements.txt
+
+Flask==3.0.3            # web framework: routing, templates, static files
+Flask-SocketIO==5.3.6   # WebSocket support for the live queue
+python-socketio==5.11.2 # SocketIO protocol implementation (Flask-SocketIO needs it)
+mutagen==1.47.0         # reads MP3 metadata so we can store each song's duration
+qrcode[pil]==7.4.2      # generates the QR code that lets phones join the queue

@@ -1,0 +1,257 @@
+/* ==========================================================================
+   base.css - reset, design tokens, and page layout
+
+   All colours, spacing and fonts are declared once here as CSS custom
+   properties (the --name: value lines). Every other stylesheet refers to
+   them by name, so changing the look of the whole app means editing this
+   file only.
+   ========================================================================== */
+
+:root {
+    /* --- Colour palette: a classic Pinoy videoke machine ------------------
+       Deep navy and maroon underneath, glowing gold, magenta and cyan on
+       top - the colours of a videoke box's menu screens. */
+    --bg-deep:      #060819;   /* page background, deep navy */
+    --bg-panel:     #0f1130;   /* cards and panels sit slightly above it */
+    --bg-raised:    #191b45;   /* inputs, list rows */
+    --bg-hover:     #25285c;
+    --maroon:       #4a0c2c;   /* the warm half of the background */
+
+    --border:       #2b2e66;
+    --border-bright:#4b418c;
+
+    /* Neon accents. Gold is the headline colour (the countdown, the score,
+       the main buttons on the karaoke screen); cyan is the everyday action
+       colour; magenta the secondary; amber marks "now playing". */
+    --neon-gold:    #ffd23f;
+    --neon-cyan:    #22e0ff;
+    --neon-magenta: #ff2fa0;
+    --neon-amber:   #ffc247;
+    --neon-green:   #4ef08a;
+    --neon-red:     #ff5c6a;
+
+    --text:         #f0edff;
+    --text-dim:     #a49fc4;
+    --text-faint:   #6b6690;
+
+    /* --- Spacing scale -------------------------------------------------
+       Sticking to a small set of sizes keeps spacing consistent instead of
+       every element inventing its own padding. */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 24px;
+    --space-6: 32px;
+    --space-7: 48px;
+
+    --radius:    10px;
+    --radius-lg: 16px;
+
+    --font-display: "Segoe UI", "Trebuchet MS", system-ui, sans-serif;
+    --font-mono: "Consolas", "SF Mono", "Courier New", monospace;
+
+    /* Glow effects, reused by the lyrics and the score meter. */
+    --glow-cyan:    0 0 12px rgba(34, 224, 255, 0.55);
+    --glow-magenta: 0 0 12px rgba(255, 59, 167, 0.55);
+    --glow-amber:   0 0 18px rgba(255, 194, 71, 0.60);
+    --glow-gold:    0 0 18px rgba(255, 210, 63, 0.65);
+}
+
+/* --- Reset ------------------------------------------------------------- */
+
+*,
+*::before,
+*::after {
+    /* border-box means padding and borders count INSIDE an element's stated
+       width, which makes layouts behave predictably. */
+    box-sizing: border-box;
+}
+
+/* The HTML `hidden` attribute must always win.
+ *
+ * Browsers implement `hidden` as `display: none` in their own default
+ * stylesheet, and ANY author rule that sets `display` beats a browser default
+ * - regardless of specificity. So an element like
+ *     <div class="sync__body" hidden>
+ * stays visible if `.sync__body` sets `display: grid`, which silently breaks
+ * every "hide this until needed" panel in the app.
+ *
+ * Declaring it here with !important makes `hidden` reliable everywhere, so
+ * JavaScript can toggle `element.hidden` and trust the result. */
+[hidden] {
+    display: none !important;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+}
+
+body {
+    /* Deep navy, warmed by a maroon glow in one corner - the videoke look.
+       Not background-attachment: fixed, which would make the browser
+       repaint the whole background on every scroll of the phone page. */
+    background:
+        radial-gradient(ellipse 80% 60% at 100% 100%, rgba(74, 12, 44, 0.55), transparent 70%),
+        radial-gradient(ellipse 70% 50% at 0% 0%, rgba(34, 30, 110, 0.45), transparent 70%),
+        var(--bg-deep);
+    color: var(--text);
+    font-family: var(--font-display);
+    font-size: 16px;
+    line-height: 1.5;
+
+    /* Stop the whole page bouncing on mobile when a list is scrolled. */
+    overscroll-behavior: none;
+    -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+    margin: 0;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+button {
+    font-family: inherit;
+    font-size: inherit;
+    cursor: pointer;
+    border: none;
+    background: none;
+    color: inherit;
+}
+
+input {
+    font-family: inherit;
+    font-size: inherit;
+}
+
+ul, ol {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+/* --- Accessibility ----------------------------------------------------- */
+
+/* A visible focus ring for keyboard users. Removing outlines entirely is a
+   common mistake that makes an interface unusable without a mouse. */
+:focus-visible {
+    outline: 2px solid var(--neon-cyan);
+    outline-offset: 2px;
+}
+
+/* Hidden from the screen but still read aloud by screen readers - used for
+   labels on icon-only buttons. */
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Respect the operating system's "reduce motion" setting. The glow and
+   spectrum animations are decorative, so anyone who finds motion
+   uncomfortable should be able to switch them off. */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+    }
+}
+
+/* --- App layout --------------------------------------------------------
+   The main screen is a three-part grid: a header strip, a wide stage in the
+   middle, and a sidebar holding search and the queue. */
+
+.app {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    height: 100vh;
+    /* dvh accounts for mobile browser toolbars that appear and disappear;
+       the vh above is the fallback for browsers that lack dvh. */
+    height: 100dvh;
+    overflow: hidden;
+}
+
+.app__body {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: var(--space-4);
+    padding: var(--space-4);
+    min-height: 0;   /* lets grid children scroll instead of overflowing */
+}
+
+.app__stage {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    min-height: 0;
+}
+
+.app__sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    min-height: 0;
+    overflow-y: auto;
+}
+
+/* Sidebar panels must keep their natural height.
+ *
+ * Flex items shrink by default (flex-shrink: 1). In a column that is taller
+ * than the screen, that squashes each panel down to less than its content
+ * needs - and because the lists inside have their own fixed max-heights, the
+ * content then spills out past the panel border and lands on top of the panel
+ * below. Pinning flex-shrink to 0 makes the panels keep their real size and
+ * lets the sidebar scroll instead, which is what the overflow-y above is for. */
+.app__sidebar > .panel {
+    flex-shrink: 0;
+}
+
+/* On narrow screens the sidebar drops below the stage instead of squeezing
+   next to it. */
+@media (max-width: 900px) {
+    .app__body {
+        grid-template-columns: 1fr;
+        overflow-y: auto;
+    }
+
+    .app {
+        height: auto;
+        min-height: 100dvh;
+        overflow: visible;
+    }
+}
+
+/* --- Shared panel ------------------------------------------------------ */
+
+.panel {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+}
+
+.panel__title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+}

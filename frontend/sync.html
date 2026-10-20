@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lyric Sync Editor — Karaoke System</title>
+
+    <!-- Inline icon; avoids a 404 for /favicon.ico on every load. -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#127908;</text></svg>">
+
+    <link rel="stylesheet" href="/css/base.css">
+    <link rel="stylesheet" href="/css/theme-retro.css">
+    <link rel="stylesheet" href="/css/components.css">
+    <!-- For the preview only: the karaoke screen's lyric band (.band,
+         .lyrics--band). Every rule in it is scoped to its own classes. -->
+    <link rel="stylesheet" href="/css/videoke.css">
+</head>
+<body>
+
+<div class="crt-overlay" aria-hidden="true"></div>
+
+<div class="sync">
+
+    <header class="topbar">
+        <div class="topbar__brand">
+            <span class="topbar__logo">Sync</span>
+            <span class="topbar__tag">Lyric Timing Editor</span>
+        </div>
+        <div class="topbar__actions">
+            <a href="/" class="btn btn--ghost btn--small">Back to Karaoke</a>
+        </div>
+    </header>
+
+    <!-- ============ STEP 1: pick a song ============ -->
+    <div id="sync-picker-panel" class="sync__body" style="grid-template-columns: 1fr;">
+
+        <!-- Add a song: upload it from this computer into the library. -->
+        <section class="panel">
+            <details id="add-song" class="add-song">
+                <summary class="panel__title add-song__summary"><span>+ Add a song</span></summary>
+
+                <form id="add-song-form" class="add-song__form" autocomplete="off">
+                    <p class="add-song__hint">
+                        Choose the <strong>original recording, with vocals</strong>. The
+                        system removes the vocals to make the karaoke track, finds the line
+                        timing on LRCLIB and times every word by itself. It takes about
+                        8 minutes and runs in the background.
+                    </p>
+
+                    <label class="field">
+                        <span class="field__label">Original recording (with vocals)</span>
+                        <input id="add-original" name="original" type="file"
+                               accept=".mp3,.wav,.ogg,audio/mpeg,audio/wav,audio/ogg" class="field__input">
+                    </label>
+
+                    <div class="add-song__row">
+                        <label class="field">
+                            <span class="field__label">Artist</span>
+                            <input id="add-artist" name="artist" class="field__input" required>
+                        </label>
+                        <label class="field">
+                            <span class="field__label">Title</span>
+                            <input id="add-title" name="title" class="field__input" required>
+                        </label>
+                        <label class="field">
+                            <span class="field__label">Language</span>
+                            <select id="add-language" name="language" class="field__input">
+                                <option value="English">English</option>
+                                <option value="Filipino">Filipino / Taglish</option>
+                                <option value="">Other</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    <details class="add-song__more">
+                        <summary>More options</summary>
+                        <label class="field">
+                            <span class="field__label">Your own minus-one (optional)</span>
+                            <input id="add-minus" name="minus" type="file"
+                                   accept=".mp3,.wav,.ogg,.m4a,audio/*" class="field__input">
+                            <span class="add-song__hint">Used as the karaoke track instead of
+                                making one. It must be the same recording as the original, or the
+                                timing will not fit.</span>
+                        </label>
+                        <label class="field">
+                            <span class="field__label">Lyrics (optional)</span>
+                            <textarea id="add-lyrics" name="lyrics" class="field__input add-song__lyrics"
+                                      placeholder="Only needed if LRCLIB does not have the song. One sung line per line."></textarea>
+                        </label>
+                        <label class="add-song__check">
+                            <input id="add-autosync" type="checkbox" checked>
+                            Time the words automatically (auto sync)
+                        </label>
+                    </details>
+
+                    <div class="add-song__actions">
+                        <div id="add-status" class="add-song__status" role="status"></div>
+                        <button id="add-submit" type="submit" class="btn btn--primary">Add song</button>
+                    </div>
+                    <div class="progress" hidden id="add-progress-wrap">
+                        <div id="add-progress" class="progress__bar"></div>
+                    </div>
+                </form>
+            </details>
+        </section>
+
+        <section class="panel">
+            <div class="panel__title"><span>Choose a song to time</span></div>
+            <p style="color: var(--text-dim); font-size: 0.9rem; margin: 0 0 var(--space-3);">
+                Pick a song, press <kbd>SPACE</kbd> to play it, and tap <kbd>J</kbd> as
+                each line - or, in Words mode, each word - begins. The editor records
+                the exact moment and writes a proper <code>.lrc</code> file when you save.
+            </p>
+            <div id="song-picker" class="song-list" style="max-height: none;"></div>
+        </section>
+    </div>
+
+    <!-- ============ STEP 2: tap along ============ -->
+    <div id="sync-workspace" class="sync__body" hidden>
+
+        <div class="sync__main">
+            <!-- Live preview: the real karaoke wipe, drawn from exactly what
+                 Save would write, so you see the result while you work. -->
+            <div class="stage sync__preview">
+                <div id="sync-preview" class="lyrics"></div>
+            </div>
+            <div id="sync-lines" class="sync__lines"></div>
+        </div>
+
+        <aside class="app__sidebar">
+            <section class="panel">
+                <div class="panel__title"><span>Now Timing</span></div>
+                <div id="sync-title" style="font-weight: 700; margin-bottom: var(--space-2);"></div>
+                <div id="sync-progress" style="color: var(--neon-cyan); font-size: 0.85rem;"></div>
+
+                <!-- Lines: one tap per line. Words: one tap per word. -->
+                <div class="mode-toggle" role="group" aria-label="Timing mode">
+                    <button id="mode-lines" class="btn btn--small" aria-pressed="true">Lines</button>
+                    <button id="mode-words" class="btn btn--small" aria-pressed="false">Words</button>
+                </div>
+            </section>
+
+            <!-- Where this song's timing came from, and a way to get it from
+                 LRCLIB instead of tapping it all by hand. -->
+            <section class="panel">
+                <div class="panel__title"><span>Timing Source</span></div>
+                <div id="sync-source" class="sync__help"></div>
+                <button id="sync-fetch" class="btn" style="width: 100%; margin-top: var(--space-3);">
+                    Fetch timing from LRCLIB
+                </button>
+            </section>
+
+            <!-- Automatic word sync: run it, watch it, and check its result. -->
+            <section class="panel">
+                <div class="panel__title"><span>Auto Sync</span></div>
+                <div id="autosync-status" class="autosync__status"></div>
+                <div id="autosync-message" class="sync__help autosync__message"></div>
+
+                <div class="progress" id="autosync-progress-wrap" hidden>
+                    <div id="autosync-progress" class="progress__bar"></div>
+                </div>
+
+                <div id="autosync-controls">
+                    <label class="add-song__check">
+                        <input id="autosync-isolate" type="checkbox" checked>
+                        Isolate the vocals first (recommended)
+                    </label>
+                    <button id="autosync-run" class="btn" style="width: 100%;">Auto Sync</button>
+                </div>
+
+                <button id="autosync-draft" class="btn btn--primary" style="width: 100%;" hidden>
+                    Load auto-sync draft
+                </button>
+                <button id="autosync-next" class="btn btn--ghost" style="width: 100%;" hidden>
+                    Next word to check (N)
+                </button>
+            </section>
+
+            <section class="panel">
+                <div class="panel__title"><span>Controls</span></div>
+                <div class="sync__help">
+                    <div><kbd>SPACE</kbd> play / pause</div>
+                    <div><kbd>J</kbd> stamp the highlighted line or word</div>
+                    <div><kbd>⌫</kbd> undo the last stamp</div>
+                    <div><kbd>,</kbd> <kbd>.</kbd> seek back / forward 2s</div>
+                    <div><kbd>L</kbd> replay the current line</div>
+                    <div><kbd>S</kbd> speed 100% / 75% / 50%</div>
+                    <div><kbd>N</kbd> next word auto sync was unsure of</div>
+                </div>
+
+                <!-- Lines mode -->
+                <div id="help-lines" class="sync__help sync__help--mode">
+                    <div><kbd>←</kbd> <kbd>→</kbd> nudge the last line by 0.1s</div>
+                    <strong style="color: var(--text);">How to do this well</strong>
+                    <div>Listen through once first so you know the song.</div>
+                    <div>Tap the moment a line <em>starts</em>, not when you read it.</div>
+                    <div>Click any line to jump there and re-time from that point.</div>
+                </div>
+
+                <!-- Words mode -->
+                <div id="help-words" class="sync__help sync__help--mode" hidden>
+                    <div><kbd>←</kbd> <kbd>→</kbd> nudge the selected word 0.05s
+                         (<kbd>Shift</kbd> 0.01s)</div>
+                    <div><kbd>↑</kbd> <kbd>↓</kbd> select the previous / next word</div>
+                    <div><kbd>K</kbd> mark where the line's singing stops</div>
+                    <div><kbd>R</kbd> re-tap the current line</div>
+                    <strong style="color: var(--text);">How to do this well</strong>
+                    <div>Slow down with <kbd>S</kbd> - 75% makes fast lines far easier.</div>
+                    <div>Press <kbd>K</kbd> after a line's last word when a break follows,
+                         so its wipe stops with the singing.</div>
+                    <div>Click a word to hear it and select it; <kbd>J</kbd> then re-taps
+                         from there.</div>
+                </div>
+
+                <div class="sync__help" style="margin-top: var(--space-3);">
+                    <div>Taps are shifted 0.15s earlier to allow for reaction time.</div>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel__title"><span>Danger Zone</span></div>
+                <button id="sync-restart" class="btn btn--danger" style="width: 100%;">
+                    Clear all timestamps
+                </button>
+            </section>
+        </aside>
+    </div>
+
+    <!-- ============ No lyrics at all: paste them ============
+         Shown for a song with no lyric sheet and no LRCLIB match. Once the
+         words are saved, the song opens in the tap-along view above. -->
+    <div id="sync-paste-panel" class="sync__body" style="grid-template-columns: 1fr;" hidden>
+        <section class="panel paste">
+            <div class="panel__title"><span>This song has no lyrics yet</span></div>
+            <div id="paste-title" style="font-weight: 700;"></div>
+            <p class="paste__hint">
+                LRCLIB has nothing for this song, so paste the lyrics yourself -
+                one sung line per line. Section labels such as <code>[Chorus]</code>
+                are fine: the editor skips them when you tap along.
+            </p>
+            <label for="paste-text" class="visually-hidden">Lyrics</label>
+            <textarea id="paste-text" class="field__input paste__text"
+                      placeholder="Paste the lyrics here..."></textarea>
+            <div class="paste__actions">
+                <button id="paste-fetch" class="btn">Try LRCLIB again</button>
+                <button id="paste-save" class="btn btn--primary">Save lyrics</button>
+            </div>
+        </section>
+    </div>
+
+    <!-- ============ Transport ============ -->
+    <footer class="sync__footer">
+        <button id="sync-back" class="btn btn--ghost">← Songs</button>
+        <button id="sync-play" class="btn btn--primary">Play</button>
+        <button id="sync-stamp" class="btn">Stamp Line (J)</button>
+        <button id="sync-undo" class="btn">Undo</button>
+        <button id="sync-speed" class="btn btn--ghost">Speed 100%</button>
+        <button id="sync-preview-open" class="btn btn--ghost">Preview</button>
+
+        <span id="sync-time" class="transport__time">0:00</span>
+        <span style="color: var(--text-faint);">/</span>
+        <span id="sync-duration" class="transport__time">0:00</span>
+
+        <!-- margin-left: auto pushes Save to the far right, away from the
+             other controls so it is not hit by accident. -->
+        <button id="sync-save" class="btn btn--primary" style="margin-left: auto;" disabled>
+            Save .lrc
+        </button>
+    </footer>
+</div>
+
+<!-- Preview: the song with its word glow exactly as the karaoke screen
+     shows it - the same renderer in the same "band" layout - drawn from
+     what Save would write. -->
+<div id="preview" class="preview" hidden>
+    <div class="preview__head">
+        <div>
+            <div class="preview__kicker">Preview</div>
+            <div id="preview-title" class="preview__title"></div>
+        </div>
+        <div class="preview__actions">
+            <button id="preview-start" class="btn btn--ghost btn--small">From the start</button>
+            <button id="preview-play" class="btn btn--primary btn--small">Play</button>
+            <button id="preview-close" class="btn btn--small">Close (Esc)</button>
+        </div>
+    </div>
+    <section class="band preview__band" aria-label="Lyrics preview">
+        <div id="preview-lyrics" class="lyrics"></div>
+    </section>
+    <div class="preview__foot">
+        <span id="preview-time" class="transport__time">0:00</span>
+        <span>SPACE play / pause &middot; , . seek &middot; Esc close</span>
+    </div>
+</div>
+
+<audio id="sync-audio" preload="metadata"></audio>
+<dialog id="edit-song-dialog" class="edit-song">
+    <form id="edit-song-form" method="dialog" autocomplete="off">
+        <h2 class="panel__title"><span>Edit song</span></h2>
+        <label class="field">Code
+            <input id="edit-code" inputmode="numeric" pattern="[0-9]*" required>
+        </label>
+        <label class="field">Title
+            <input id="edit-title" required>
+        </label>
+        <label class="field">Artist
+            <input id="edit-artist" required>
+        </label>
+        <label class="field">Language
+            <select id="edit-language">
+                <option value="">Not set</option>
+                <option value="English">English</option>
+                <option value="Filipino">Filipino</option>
+            </select>
+        </label>
+        <p id="edit-error" class="add-song__status add-song__status--error" hidden></p>
+        <div class="add-song__actions">
+            <button type="submit" class="btn btn--small">Save</button>
+            <button type="button" id="edit-cancel" class="btn btn--ghost btn--small">Cancel</button>
+        </div>
+    </form>
+</dialog>
+
+<div id="toast" class="toast" role="status" hidden></div>
+
+<script type="module" src="/js/tools/syncEditor.js"></script>
+
+</body>
+</html>
